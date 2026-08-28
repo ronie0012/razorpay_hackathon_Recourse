@@ -122,6 +122,9 @@ Regenerate the statistical layer with `python scripts/generate_data.py`, `python
 
 The repository contains a safe split deployment configuration:
 
+- Live frontend: <https://recourse-razorpay-recovery.vercel.app>
+- Backend readiness: <https://recourse-razorpay-recovery-api.onrender.com/health/ready>
+
 - `render.yaml` runs the FastAPI backend on Render with generated signing secrets, temporary SQLite storage, and all paid/external providers disabled.
 - `apps/web/vercel.json` builds the Vite frontend on Vercel and proxies `/api` and `/health` to the Render service.
 
