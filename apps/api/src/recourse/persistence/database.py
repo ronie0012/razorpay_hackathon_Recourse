@@ -10,6 +10,8 @@ class Base(DeclarativeBase):
 
 def make_engine(url: str | None = None):
     database_url = url or get_settings().database_url
+    if database_url.startswith("postgresql://"):
+        database_url = database_url.replace("postgresql://", "postgresql+psycopg://", 1)
     engine = create_engine(database_url, connect_args={"check_same_thread": False} if database_url.startswith("sqlite") else {})
     if database_url.startswith("sqlite"):
         @event.listens_for(engine, "connect")
@@ -28,4 +30,3 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False
 def get_db():
     with SessionLocal() as session:
         yield session
-

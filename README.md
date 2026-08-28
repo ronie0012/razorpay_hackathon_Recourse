@@ -125,8 +125,10 @@ The repository contains a safe split deployment configuration:
 - Live frontend: <https://recourse-razorpay-recovery.vercel.app>
 - Backend readiness: <https://recourse-razorpay-recovery-api.onrender.com/health/ready>
 
-- `render.yaml` runs the FastAPI backend on Render with generated signing secrets, temporary SQLite storage, and all paid/external providers disabled.
+- `render.yaml` runs the FastAPI backend on Render with generated signing secrets, free PostgreSQL storage, and all paid/external providers disabled by default.
 - `apps/web/vercel.json` builds the Vite frontend on Vercel and proxies `/api` and `/health` to the Render service.
+
+When Razorpay Test Mode is enabled, a verified `payment.failed` webhook is acknowledged immediately and schedules the idempotent diagnosis → challenge → policy → execution pipeline. The Render Blueprint attaches a free PostgreSQL database so live cases survive web-service restarts. Render free PostgreSQL databases expire after 30 days, so renew or upgrade the datastore before a longer-running deployment.
 
 On Vercel, select `apps/web` as the project root. The public deployment is intentionally deterministic: visitors cannot consume OpenRouter credits or create Razorpay links. Use **Reset judge demo** whenever the temporary Render database is recreated after a deployment or restart.
 

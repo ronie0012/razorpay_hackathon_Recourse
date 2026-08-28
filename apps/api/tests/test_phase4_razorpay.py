@@ -60,8 +60,19 @@ def test_valid_provider_failure_uses_test_mode_source(client):
     assert response.status_code == 200
     result = response.json()
     assert result["created"] is True
+    assert result["agent_run"] == "scheduled"
     assert result["mode_label"] == "RAZORPAY TEST MODE — NO REAL MONEY"
-    assert client.get(f"/api/v1/cases/{result['case_id']}").json()["case"]["source"] == "razorpay_test_mode"
+    detail = client.get(f"/api/v1/cases/{result['case_id']}").json()
+    assert detail["case"]["source"] == "razorpay_test_mode"
+    assert detail["state"] == "LINK_ISSUED"
+
+    duplicate = client.post("/api/v1/webhooks/razorpay", content=body, headers={
+        "X-Razorpay-Signature": signature, "X-Razorpay-Event-Id": "rzp-event-payment-failed",
+    }).json()
+    assert duplicate["created"] is False
+    assert duplicate["agent_run"] == "scheduled"
+    audit = client.get(f"/api/v1/cases/{result['case_id']}/audit").json()
+    assert len([event for event in audit if event["event_type"] == "ACTION_EXECUTED_NOOP"]) == 1
 
 
 class AmbiguousThenReconciledClient:

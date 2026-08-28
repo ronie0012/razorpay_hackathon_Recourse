@@ -3,14 +3,15 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
+from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import select, text
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from recourse.config import get_settings
 from recourse.domain.audit import verify_chain
@@ -23,6 +24,9 @@ from recourse.product import SurgeryMutations, decision_surgery, load_final_eval
 from recourse.razorpay import create_checkout_order, execute_action, process_fixture_webhook, process_razorpay_webhook
 from recourse.razorpay.adapter import RazorpayAdapterError
 from recourse.services import analyze_case, ingest_signed_event, list_audit
+
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -83,8 +87,20 @@ async def checkout_order(amount_subunits: int = 499900, currency: str = "INR"):
         return error("INVALID_ORDER", str(exc), 422)
 
 
+async def run_live_agent(case_id: str, session_factory: sessionmaker) -> None:
+    """Finish a newly ingested Test Mode failure after the webhook is acknowledged."""
+    with session_factory() as session:
+        try:
+            await analyze_case(session, case_id, settings)
+            await execute_action(session, case_id, settings)
+        except Exception:
+            session.rollback()
+            logger.exception("live agent pipeline failed for case %s", case_id)
+
+
 @app.post("/api/v1/webhooks/razorpay")
-async def webhook(request: Request, db: Session = Depends(get_db),
+async def webhook(request: Request, background_tasks: BackgroundTasks,
+                  db: Session = Depends(get_db),
                   x_razorpay_signature: str | None = Header(None),
                   x_razorpay_event_id: str | None = Header(None)):
     body = await request.body()
@@ -93,7 +109,17 @@ async def webhook(request: Request, db: Session = Depends(get_db),
             db, body=body, signature=x_razorpay_signature,
             event_id=x_razorpay_event_id, settings=settings,
         )
-        return {**result.__dict__, "mode_label": "RAZORPAY TEST MODE — NO REAL MONEY"}
+        agent_run = "not_applicable"
+        if result.event == "payment.failed" and result.case_id:
+            # Use a fresh session after the HTTP request. Replayed webhooks are safe:
+            # analysis and execution both enforce database-level idempotency.
+            factory = sessionmaker(bind=db.get_bind(), autoflush=False, expire_on_commit=False)
+            background_tasks.add_task(run_live_agent, result.case_id, factory)
+            agent_run = "scheduled"
+        return {
+            **result.__dict__, "agent_run": agent_run,
+            "mode_label": "RAZORPAY TEST MODE — NO REAL MONEY",
+        }
     except PermissionError as exc:
         return error("INVALID_SIGNATURE", str(exc), 401)
     except (ValueError, json.JSONDecodeError) as exc:
