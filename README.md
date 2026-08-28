@@ -118,6 +118,15 @@ Provider timeout, rate limit, missing credits, bad JSON and unsupported evidence
 
 Regenerate the statistical layer with `python scripts/generate_data.py`, `python scripts/train.py`, and `python scripts/evaluate.py`. Training code cannot import frozen potential outcomes, and every model artifact is verified by hash on load.
 
+## Public demo deployment
+
+The repository contains a safe split deployment configuration:
+
+- `render.yaml` runs the FastAPI backend on Render with generated signing secrets, temporary SQLite storage, and all paid/external providers disabled.
+- `apps/web/vercel.json` builds the Vite frontend on Vercel and proxies `/api` and `/health` to the Render service.
+
+On Vercel, select `apps/web` as the project root. The public deployment is intentionally deterministic: visitors cannot consume OpenRouter credits or create Razorpay links. Use **Reset judge demo** whenever the temporary Render database is recreated after a deployment or restart.
+
 ## Limitations
 
 - Synthetic data cannot establish real-world uplift, fairness, or calibration.

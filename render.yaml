@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: recourse-razorpay-recovery-api
+    runtime: python
+    plan: free
+    buildCommand: python -m pip install -e .
+    startCommand: python -m uvicorn recourse.main:app --app-dir apps/api/src --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health/live
+    envVars:
+      - key: DATABASE_URL
+        value: sqlite:////tmp/recourse.db
+      - key: FIXTURE_WEBHOOK_SECRET
+        generateValue: true
+      - key: COMMAND_SIGNING_SECRET
+        generateValue: true
+      - key: DEMO_MODE
+        value: "true"
+      - key: TEST_MODE
+        value: "true"
+      - key: OPENROUTER_ENABLED
+        value: "false"
+      - key: RAZORPAY_ENABLED
+        value: "false"
+      - key: CORS_ORIGINS
+        value: http://localhost:5173
