@@ -1,0 +1,2 @@
+"""RECOURSE deterministic vertical slice."""
+

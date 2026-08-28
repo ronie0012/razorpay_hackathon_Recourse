@@ -1,0 +1,660 @@
+{
+  "ablations": {
+    "action_costs": {
+      "disabled_value_subunits": 6503072,
+      "enabled_value_subunits": 6347272,
+      "overstatement_subunits": 155800
+    },
+    "calibration": {
+      "comparison": "single_model macro Brier versus calibrated per-arm macro Brier",
+      "enabled": true
+    },
+    "challenger_verifier": {
+      "enabled_in_product": true,
+      "evaluation_external_calls": 0,
+      "reason": "frozen evaluation keeps external agents outside policy selection"
+    },
+    "conservative_lower_bound": {
+      "enabled": true,
+      "review_or_no_action_count": 19
+    },
+    "natural_recovery_baseline": {
+      "disabled_overstated_value_subunits": 10462790,
+      "enabled_value_subunits": 6347272,
+      "overstatement_subunits": 4115518
+    },
+    "offline_guardrails": {
+      "denominator": 60,
+      "enabled_violation_count": 0
+    }
+  },
+  "actions": [
+    "NO_ACTION",
+    "RETRY_LATER",
+    "STANDARD_PAYMENT_LINK",
+    "ONE_BOUNDED_NUDGE"
+  ],
+  "audit_completeness": {
+    "complete_count": 240,
+    "definition": "per-case artifact rows containing case, variant, action, oracle, value, and regret provenance",
+    "rate": 1.0,
+    "total_count": 240
+  },
+  "case_count": 60,
+  "dataset_sha256": "84d827c599b5e9ed7645777b1c6c7a8be4725339fc226b32de14c48e38397558",
+  "failure_analysis": {
+    "case_id": "case_syn_002014",
+    "explanation": "Conservative policy selection did not match the evaluator-only realized oracle outcome; hidden outcomes remain unavailable to the policy.",
+    "oracle_action": "RETRY_LATER",
+    "regret_subunits": 863372,
+    "selected_action": "STANDARD_PAYMENT_LINK"
+  },
+  "freeze": {
+    "openrouter_model": "liquid/lfm-2.5-2.6b:free",
+    "policy_source_sha256": "3fa83d375a339a55ebe0291dfe0838395bcefbaa4b3a3086b22bdfc0a7e760ff",
+    "prompt_hashes": {
+      "challenge-v1.txt": "47a47797844a015e5aa3bf2f14c08a8395cecadea916bb6147e55dc7ed7dfe3f",
+      "diagnose-v1.txt": "68e4ef3a8aa923fec04f54c25836688590765d0b7d8eaf82c35d85789d63f8f4"
+    },
+    "schema_hashes": {
+      "challenge-v1.json": "48ba769a3cb1be61f1fce3229e6f67208ed01006740fdf3da7487f3e1ad57c09",
+      "diagnosis-v1.json": "75e98f496e0cd1d532c6211e6725b1074444013e4e2f5ce1f9ddd222c909acc8"
+    }
+  },
+  "label": "FINAL SYNTHETIC FROZEN BENCHMARK \u2014 NOT PRODUCTION UPLIFT",
+  "model_manifest_sha256": "23c07c392f86dbe85eb7d5681d4f3ccf35188b0ee004139bdfe2f44daf508cb3",
+  "openrouter_summary": {
+    "call_count": 0,
+    "estimated_cost_usd": 0,
+    "fallback_count": 0,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "reason": "OpenRouter is excluded from frozen policy evaluation",
+    "repair_count": 0,
+    "schema_failure_count": 0
+  },
+  "per_case_sha256": "ac8b62ca54f25af874983cdb307566c3b5c6edb341843ea92d0ef810a8c7378a",
+  "policy_config": {
+    "max_interval_width": 0.35,
+    "min_conservative_inv_subunits": 1000,
+    "min_evidence_quality": 0.7,
+    "tie_band_subunits": 500
+  },
+  "policy_hash": "c59492acca56f23043a80971d1a235808d018cdf317e98db27e78f7e8a3203fa",
+  "run_timestamp": "2026-08-27T16:56:13.464753+00:00",
+  "seed": 20260826,
+  "variants": {
+    "full_recourse": {
+      "abstain_count": 0,
+      "abstain_rate": 0.0,
+      "artifact_completeness": {
+        "complete_count": 60,
+        "rate": 1.0,
+        "total_count": 60
+      },
+      "automatic_action_count": 41,
+      "brier_by_arm": {
+        "NO_ACTION": 0.1284905138,
+        "ONE_BOUNDED_NUDGE": 0.1882535687,
+        "RETRY_LATER": 0.2209961534,
+        "STANDARD_PAYMENT_LINK": 0.2328116937
+      },
+      "case_count": 60,
+      "expected_incremental_net_value_subunits": 4940451,
+      "expected_value_case_count": 60,
+      "gross_recovered_subunits": 10618590,
+      "guardrail_evaluation_count": 60,
+      "guardrail_violation_count": 0,
+      "guardrail_violation_rate": 0.0,
+      "incremental_net_value_interval": {
+        "lower_95": 1063127.2,
+        "method": "seeded percentile bootstrap",
+        "repetitions": 500,
+        "upper_95": 11862320.2
+      },
+      "incremental_net_value_subunits": 6347272,
+      "incremental_recovered_subunits": 6503072,
+      "latency_ms": {
+        "count": 60,
+        "median": 0.9355,
+        "p95": 1.23394
+      },
+      "macro_brier": 0.1926379824,
+      "mean_incremental_net_value_subunits": 105787.8667,
+      "natural_recovery_subunits": 4115518,
+      "no_action": {
+        "false_negative": 15,
+        "false_positive": 6,
+        "precision": 0.68421053,
+        "recall": 0.46428571,
+        "true_negative": 26,
+        "true_positive": 13
+      },
+      "realized_incremental_net_value_subunits": 6347272,
+      "recovery_roi": 41.73987163,
+      "regret": {
+        "mean_subunits": 119525.05,
+        "median_subunits": 2500.0,
+        "oracle_match_count": 22,
+        "oracle_match_rate": 0.36666667,
+        "p90_subunits": 491580.3,
+        "total_subunits": 7171503
+      },
+      "reliability_bins": {
+        "NO_ACTION": [
+          {
+            "bin": 0,
+            "count": 55,
+            "lower": 0.0,
+            "mean_prediction": 0.1874033561,
+            "observed_frequency": 0.1636363636,
+            "upper": 0.2
+          },
+          {
+            "bin": 1,
+            "count": 5,
+            "lower": 0.2,
+            "mean_prediction": 0.2004852019,
+            "observed_frequency": 0,
+            "upper": 0.4
+          },
+          {
+            "bin": 2,
+            "count": 0,
+            "lower": 0.4,
+            "mean_prediction": null,
+            "observed_frequency": null,
+            "upper": 0.6
+          },
+          {
+            "bin": 3,
+            "count": 0,
+            "lower": 0.6,
+            "mean_prediction": null,
+            "observed_frequency": null,
+            "upper": 0.8
+          },
+          {
+            "bin": 4,
+            "count": 0,
+            "lower": 0.8,
+            "mean_prediction": null,
+            "observed_frequency": null,
+            "upper": 1.0
+          }
+        ],
+        "ONE_BOUNDED_NUDGE": [
+          {
+            "bin": 0,
+            "count": 0,
+            "lower": 0.0,
+            "mean_prediction": null,
+            "observed_frequency": null,
+            "upper": 0.2
+          },
+          {
+            "bin": 1,
+            "count": 60,
+            "lower": 0.2,
+            "mean_prediction": 0.2754584753,
+            "observed_frequency": 0.25,
+            "upper": 0.4
+          },
+          {
+            "bin": 2,
+            "count": 0,
+            "lower": 0.4,
+            "mean_prediction": null,
+            "observed_frequency": null,
+            "upper": 0.6
+          },
+          {
+            "bin": 3,
+            "count": 0,
+            "lower": 0.6,
+            "mean_prediction": null,
+            "observed_frequency": null,
+            "upper": 0.8
+          },
+          {
+            "bin": 4,
+            "count": 0,
+            "lower": 0.8,
+            "mean_prediction": null,
+            "observed_frequency": null,
+            "upper": 1.0
+          }
+        ],
+        "RETRY_LATER": [
+          {
+            "bin": 0,
+            "count": 0,
+            "lower": 0.0,
+            "mean_prediction": null,
+            "observed_frequency": null,
+            "upper": 0.2
+          },
+          {
+            "bin": 1,
+            "count": 60,
+            "lower": 0.2,
+            "mean_prediction": 0.3243430903,
+            "observed_frequency": 0.3333333333,
+            "upper": 0.4
+          },
+          {
+            "bin": 2,
+            "count": 0,
+            "lower": 0.4,
+            "mean_prediction": null,
+            "observed_frequency": null,
+            "upper": 0.6
+          },
+          {
+            "bin": 3,
+            "count": 0,
+            "lower": 0.6,
+            "mean_prediction": null,
+            "observed_frequency": null,
+            "upper": 0.8
+          },
+          {
+            "bin": 4,
+            "count": 0,
+            "lower": 0.8,
+            "mean_prediction": null,
+            "observed_frequency": null,
+            "upper": 1.0
+          }
+        ],
+        "STANDARD_PAYMENT_LINK": [
+          {
+            "bin": 0,
+            "count": 0,
+            "lower": 0.0,
+            "mean_prediction": null,
+            "observed_frequency": null,
+            "upper": 0.2
+          },
+          {
+            "bin": 1,
+            "count": 0,
+            "lower": 0.2,
+            "mean_prediction": null,
+            "observed_frequency": null,
+            "upper": 0.4
+          },
+          {
+            "bin": 2,
+            "count": 60,
+            "lower": 0.4,
+            "mean_prediction": 0.4304804468,
+            "observed_frequency": 0.35,
+            "upper": 0.6
+          },
+          {
+            "bin": 3,
+            "count": 0,
+            "lower": 0.6,
+            "mean_prediction": null,
+            "observed_frequency": null,
+            "upper": 0.8
+          },
+          {
+            "bin": 4,
+            "count": 0,
+            "lower": 0.8,
+            "mean_prediction": null,
+            "observed_frequency": null,
+            "upper": 1.0
+          }
+        ]
+      },
+      "review_count": 5,
+      "review_rate": 0.08333333,
+      "total_action_cost_subunits": 155800
+    },
+    "oracle": {
+      "abstain_count": 0,
+      "abstain_rate": 0.0,
+      "artifact_completeness": {
+        "complete_count": 60,
+        "rate": 1.0,
+        "total_count": 60
+      },
+      "automatic_action_count": 32,
+      "brier_by_arm": null,
+      "case_count": 60,
+      "expected_incremental_net_value_subunits": 13518775,
+      "expected_value_case_count": 60,
+      "gross_recovered_subunits": 17729293,
+      "guardrail_evaluation_count": 60,
+      "guardrail_violation_count": 0,
+      "guardrail_violation_rate": 0.0,
+      "incremental_net_value_interval": {
+        "lower_95": 9094972.85,
+        "method": "seeded percentile bootstrap",
+        "repetitions": 500,
+        "upper_95": 17711189.72
+      },
+      "incremental_net_value_subunits": 13518775,
+      "incremental_recovered_subunits": 13613775,
+      "latency_ms": {
+        "count": 60,
+        "median": 0.0,
+        "p95": 0.0
+      },
+      "macro_brier": null,
+      "mean_incremental_net_value_subunits": 225312.9167,
+      "natural_recovery_subunits": 4115518,
+      "no_action": {
+        "false_negative": 0,
+        "false_positive": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "true_negative": 32,
+        "true_positive": 28
+      },
+      "realized_incremental_net_value_subunits": 13518775,
+      "recovery_roi": 143.30289474,
+      "regret": {
+        "mean_subunits": 0,
+        "median_subunits": 0.0,
+        "oracle_match_count": 60,
+        "oracle_match_rate": 1.0,
+        "p90_subunits": 0.0,
+        "total_subunits": 0
+      },
+      "reliability_bins": null,
+      "review_count": 0,
+      "review_rate": 0.0,
+      "total_action_cost_subunits": 95000
+    },
+    "rules": {
+      "abstain_count": 0,
+      "abstain_rate": 0.0,
+      "artifact_completeness": {
+        "complete_count": 60,
+        "rate": 1.0,
+        "total_count": 60
+      },
+      "automatic_action_count": 50,
+      "brier_by_arm": null,
+      "case_count": 60,
+      "expected_incremental_net_value_subunits": null,
+      "expected_value_case_count": 0,
+      "gross_recovered_subunits": 10321139,
+      "guardrail_evaluation_count": 60,
+      "guardrail_violation_count": 0,
+      "guardrail_violation_rate": 0.0,
+      "incremental_net_value_interval": {
+        "lower_95": 1374135.8,
+        "method": "seeded percentile bootstrap",
+        "repetitions": 500,
+        "upper_95": 10993549.12
+      },
+      "incremental_net_value_subunits": 6090621,
+      "incremental_recovered_subunits": 6205621,
+      "latency_ms": {
+        "count": 60,
+        "median": 0.0018,
+        "p95": 0.002755
+      },
+      "macro_brier": null,
+      "mean_incremental_net_value_subunits": 101510.35,
+      "natural_recovery_subunits": 4115518,
+      "no_action": {
+        "false_negative": 20,
+        "false_positive": 2,
+        "precision": 0.8,
+        "recall": 0.28571429,
+        "true_negative": 30,
+        "true_positive": 8
+      },
+      "realized_incremental_net_value_subunits": 6090621,
+      "recovery_roi": 53.96192174,
+      "regret": {
+        "mean_subunits": 123802.5667,
+        "median_subunits": 1300.0,
+        "oracle_match_count": 22,
+        "oracle_match_rate": 0.36666667,
+        "p90_subunits": 582113.4,
+        "total_subunits": 7428154
+      },
+      "reliability_bins": null,
+      "review_count": 0,
+      "review_rate": 0.0,
+      "total_action_cost_subunits": 115000
+    },
+    "single_model": {
+      "abstain_count": 0,
+      "abstain_rate": 0.0,
+      "artifact_completeness": {
+        "complete_count": 60,
+        "rate": 1.0,
+        "total_count": 60
+      },
+      "automatic_action_count": 0,
+      "brier_by_arm": {
+        "NO_ACTION": 0.1508840818,
+        "ONE_BOUNDED_NUDGE": 0.1903361894,
+        "RETRY_LATER": 0.2185655935,
+        "STANDARD_PAYMENT_LINK": 0.2216672786
+      },
+      "case_count": 60,
+      "expected_incremental_net_value_subunits": 0,
+      "expected_value_case_count": 60,
+      "gross_recovered_subunits": 4115518,
+      "guardrail_evaluation_count": 60,
+      "guardrail_violation_count": 0,
+      "guardrail_violation_rate": 0.0,
+      "incremental_net_value_interval": {
+        "lower_95": 0.0,
+        "method": "seeded percentile bootstrap",
+        "repetitions": 500,
+        "upper_95": 0.0
+      },
+      "incremental_net_value_subunits": 0,
+      "incremental_recovered_subunits": 0,
+      "latency_ms": {
+        "count": 60,
+        "median": 0.8783,
+        "p95": 1.116595
+      },
+      "macro_brier": 0.1953632858,
+      "mean_incremental_net_value_subunits": 0,
+      "natural_recovery_subunits": 4115518,
+      "no_action": {
+        "false_negative": 0,
+        "false_positive": 32,
+        "precision": 0.46666667,
+        "recall": 1.0,
+        "true_negative": 0,
+        "true_positive": 28
+      },
+      "realized_incremental_net_value_subunits": 0,
+      "recovery_roi": 0.0,
+      "regret": {
+        "mean_subunits": 225312.9167,
+        "median_subunits": 20086.0,
+        "oracle_match_count": 28,
+        "oracle_match_rate": 0.46666667,
+        "p90_subunits": 710562.4,
+        "total_subunits": 13518775
+      },
+      "reliability_bins": {
+        "NO_ACTION": [
+          {
+            "bin": 0,
+            "count": 0,
+            "lower": 0.0,
+            "mean_prediction": null,
+            "observed_frequency": null,
+            "upper": 0.2
+          },
+          {
+            "bin": 1,
+            "count": 60,
+            "lower": 0.2,
+            "mean_prediction": 0.3040461571,
+            "observed_frequency": 0.15,
+            "upper": 0.4
+          },
+          {
+            "bin": 2,
+            "count": 0,
+            "lower": 0.4,
+            "mean_prediction": null,
+            "observed_frequency": null,
+            "upper": 0.6
+          },
+          {
+            "bin": 3,
+            "count": 0,
+            "lower": 0.6,
+            "mean_prediction": null,
+            "observed_frequency": null,
+            "upper": 0.8
+          },
+          {
+            "bin": 4,
+            "count": 0,
+            "lower": 0.8,
+            "mean_prediction": null,
+            "observed_frequency": null,
+            "upper": 1.0
+          }
+        ],
+        "ONE_BOUNDED_NUDGE": [
+          {
+            "bin": 0,
+            "count": 0,
+            "lower": 0.0,
+            "mean_prediction": null,
+            "observed_frequency": null,
+            "upper": 0.2
+          },
+          {
+            "bin": 1,
+            "count": 60,
+            "lower": 0.2,
+            "mean_prediction": 0.3040461571,
+            "observed_frequency": 0.25,
+            "upper": 0.4
+          },
+          {
+            "bin": 2,
+            "count": 0,
+            "lower": 0.4,
+            "mean_prediction": null,
+            "observed_frequency": null,
+            "upper": 0.6
+          },
+          {
+            "bin": 3,
+            "count": 0,
+            "lower": 0.6,
+            "mean_prediction": null,
+            "observed_frequency": null,
+            "upper": 0.8
+          },
+          {
+            "bin": 4,
+            "count": 0,
+            "lower": 0.8,
+            "mean_prediction": null,
+            "observed_frequency": null,
+            "upper": 1.0
+          }
+        ],
+        "RETRY_LATER": [
+          {
+            "bin": 0,
+            "count": 0,
+            "lower": 0.0,
+            "mean_prediction": null,
+            "observed_frequency": null,
+            "upper": 0.2
+          },
+          {
+            "bin": 1,
+            "count": 60,
+            "lower": 0.2,
+            "mean_prediction": 0.3040461571,
+            "observed_frequency": 0.3333333333,
+            "upper": 0.4
+          },
+          {
+            "bin": 2,
+            "count": 0,
+            "lower": 0.4,
+            "mean_prediction": null,
+            "observed_frequency": null,
+            "upper": 0.6
+          },
+          {
+            "bin": 3,
+            "count": 0,
+            "lower": 0.6,
+            "mean_prediction": null,
+            "observed_frequency": null,
+            "upper": 0.8
+          },
+          {
+            "bin": 4,
+            "count": 0,
+            "lower": 0.8,
+            "mean_prediction": null,
+            "observed_frequency": null,
+            "upper": 1.0
+          }
+        ],
+        "STANDARD_PAYMENT_LINK": [
+          {
+            "bin": 0,
+            "count": 0,
+            "lower": 0.0,
+            "mean_prediction": null,
+            "observed_frequency": null,
+            "upper": 0.2
+          },
+          {
+            "bin": 1,
+            "count": 60,
+            "lower": 0.2,
+            "mean_prediction": 0.3040461571,
+            "observed_frequency": 0.35,
+            "upper": 0.4
+          },
+          {
+            "bin": 2,
+            "count": 0,
+            "lower": 0.4,
+            "mean_prediction": null,
+            "observed_frequency": null,
+            "upper": 0.6
+          },
+          {
+            "bin": 3,
+            "count": 0,
+            "lower": 0.6,
+            "mean_prediction": null,
+            "observed_frequency": null,
+            "upper": 0.8
+          },
+          {
+            "bin": 4,
+            "count": 0,
+            "lower": 0.8,
+            "mean_prediction": null,
+            "observed_frequency": null,
+            "upper": 1.0
+          }
+        ]
+      },
+      "review_count": 0,
+      "review_rate": 0.0,
+      "total_action_cost_subunits": 0
+    }
+  }
+}

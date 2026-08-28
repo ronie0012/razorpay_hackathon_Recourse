@@ -1,0 +1,275 @@
+{
+  "arms": {
+    "NO_ACTION": {
+      "file": "arm-no_action.joblib",
+      "metrics": {
+        "brier_score": 0.1534930769,
+        "calibration_rows": 95,
+        "effective_sample_size": 342.5922,
+        "max_inverse_propensity_weight": 4.807692,
+        "reliability_bins": [
+          {
+            "bin": 0,
+            "count": 90,
+            "mean_prediction": 0.18543261,
+            "observed_frequency": 0.2
+          },
+          {
+            "bin": 1,
+            "count": 5,
+            "mean_prediction": 0.20039696,
+            "observed_frequency": 0.0
+          },
+          {
+            "bin": 2,
+            "count": 0,
+            "mean_prediction": null,
+            "observed_frequency": null
+          },
+          {
+            "bin": 3,
+            "count": 0,
+            "mean_prediction": null,
+            "observed_frequency": null
+          },
+          {
+            "bin": 4,
+            "count": 0,
+            "mean_prediction": null,
+            "observed_frequency": null
+          }
+        ],
+        "training_rows": 352
+      },
+      "semantic_sha256": "7824a0b34f49d037d58945d2d9fc6156203d125cb91c8de47c3dff470ae8d9fc",
+      "sha256": "e7e3e52c3f6c39eb0c49c23367b23703d15546d759efc24745fb37f5ba00138c"
+    },
+    "ONE_BOUNDED_NUDGE": {
+      "file": "arm-one_bounded_nudge.joblib",
+      "metrics": {
+        "brier_score": 0.2279436208,
+        "calibration_rows": 58,
+        "effective_sample_size": 191.8881,
+        "max_inverse_propensity_weight": 10.0,
+        "reliability_bins": [
+          {
+            "bin": 0,
+            "count": 0,
+            "mean_prediction": null,
+            "observed_frequency": null
+          },
+          {
+            "bin": 1,
+            "count": 58,
+            "mean_prediction": 0.2657108,
+            "observed_frequency": 0.34482759
+          },
+          {
+            "bin": 2,
+            "count": 0,
+            "mean_prediction": null,
+            "observed_frequency": null
+          },
+          {
+            "bin": 3,
+            "count": 0,
+            "mean_prediction": null,
+            "observed_frequency": null
+          },
+          {
+            "bin": 4,
+            "count": 0,
+            "mean_prediction": null,
+            "observed_frequency": null
+          }
+        ],
+        "training_rows": 252
+      },
+      "semantic_sha256": "871f7a154d95e5f90701dcd0a17b16cdf9c6af41bda52b1ea2b8df61fb917adc",
+      "sha256": "e98ee98458bef102e6da81bebd109937bae0641675e12f76aef66d93185d5873"
+    },
+    "RETRY_LATER": {
+      "file": "arm-retry_later.joblib",
+      "metrics": {
+        "brier_score": 0.2512789135,
+        "calibration_rows": 107,
+        "effective_sample_size": 433.8871,
+        "max_inverse_propensity_weight": 6.0,
+        "reliability_bins": [
+          {
+            "bin": 0,
+            "count": 0,
+            "mean_prediction": null,
+            "observed_frequency": null
+          },
+          {
+            "bin": 1,
+            "count": 107,
+            "mean_prediction": 0.32290323,
+            "observed_frequency": 0.42056075
+          },
+          {
+            "bin": 2,
+            "count": 0,
+            "mean_prediction": null,
+            "observed_frequency": null
+          },
+          {
+            "bin": 3,
+            "count": 0,
+            "mean_prediction": null,
+            "observed_frequency": null
+          },
+          {
+            "bin": 4,
+            "count": 0,
+            "mean_prediction": null,
+            "observed_frequency": null
+          }
+        ],
+        "training_rows": 546
+      },
+      "semantic_sha256": "5ec1a137625ffbd145a32778dc69d351b2e55eb857f1aa119737a6276a51ee5e",
+      "sha256": "55d363ae0ba840175c1edbf910ce5c559f6932927ce826b823b3d7e10c099f36"
+    },
+    "STANDARD_PAYMENT_LINK": {
+      "file": "arm-standard_payment_link.joblib",
+      "metrics": {
+        "brier_score": 0.2539175071,
+        "calibration_rows": 111,
+        "effective_sample_size": 414.6788,
+        "max_inverse_propensity_weight": 5.208333,
+        "reliability_bins": [
+          {
+            "bin": 0,
+            "count": 0,
+            "mean_prediction": null,
+            "observed_frequency": null
+          },
+          {
+            "bin": 1,
+            "count": 0,
+            "mean_prediction": null,
+            "observed_frequency": null
+          },
+          {
+            "bin": 2,
+            "count": 111,
+            "mean_prediction": 0.43013421,
+            "observed_frequency": 0.4954955
+          },
+          {
+            "bin": 3,
+            "count": 0,
+            "mean_prediction": null,
+            "observed_frequency": null
+          },
+          {
+            "bin": 4,
+            "count": 0,
+            "mean_prediction": null,
+            "observed_frequency": null
+          }
+        ],
+        "training_rows": 479
+      },
+      "semantic_sha256": "225243c6d3265d976bf7efdd5ccb0b679db0efb6bcba89e98828135d33183ad1",
+      "sha256": "50769458fc7bac5b44d4e5740731f242491f9cadf2a3f2be2c02374cfd647694"
+    }
+  },
+  "artifact_version": "per-arm-logistic-platt-v1",
+  "calibration": {
+    "method": "per-arm Platt",
+    "split": "stable row hash modulo 5",
+    "uncertainty_margin": 0.1
+  },
+  "evaluation_data_used": false,
+  "feature_columns": [
+    "amount_subunits",
+    "method",
+    "attempt_count",
+    "hour",
+    "day_of_week",
+    "failure_code",
+    "failure_source",
+    "failure_step",
+    "failure_reason",
+    "merchant_category",
+    "recovery_bucket",
+    "configured_methods",
+    "prior_failures",
+    "prior_recoveries",
+    "contacts_7d",
+    "opt_out",
+    "contact_consent",
+    "checkout_duration_bucket",
+    "method_switches",
+    "last_interaction_age_bucket",
+    "friction_signal",
+    "network_degradation",
+    "issuer_response_family",
+    "evidence_completeness",
+    "conflicting_signal",
+    "alternate_method_available",
+    "retry_eligible",
+    "link_eligible",
+    "nudge_eligible"
+  ],
+  "library_versions": {
+    "joblib": "1.5.3",
+    "numpy": "2.2.0",
+    "python": "3.11.9",
+    "scikit_learn": "1.8.0"
+  },
+  "seed": 20260826,
+  "single_model": {
+    "file": "single-success-model.joblib",
+    "metrics": {
+      "brier_score": 0.2355500577,
+      "calibration_rows": 371,
+      "effective_sample_size": 1277.5832,
+      "max_inverse_propensity_weight": 10.0,
+      "reliability_bins": [
+        {
+          "bin": 0,
+          "count": 0,
+          "mean_prediction": null,
+          "observed_frequency": null
+        },
+        {
+          "bin": 1,
+          "count": 371,
+          "mean_prediction": 0.29712558,
+          "observed_frequency": 0.37196765
+        },
+        {
+          "bin": 2,
+          "count": 0,
+          "mean_prediction": null,
+          "observed_frequency": null
+        },
+        {
+          "bin": 3,
+          "count": 0,
+          "mean_prediction": null,
+          "observed_frequency": null
+        },
+        {
+          "bin": 4,
+          "count": 0,
+          "mean_prediction": null,
+          "observed_frequency": null
+        }
+      ],
+      "training_rows": 1629
+    },
+    "semantic_sha256": "8854db1cc0e57c72ac49f9bd689b8e1049005298527eef3b80d21b42876b1e5b",
+    "sha256": "3e8d20a2ac3002eb8c8dbb102f96a003fcede67ec09679fbf96f9e91a9a97009"
+  },
+  "training_file": "train_logged.jsonl",
+  "training_sha256": "506235eef40c0fd17ddecd07b58521bb11a8754efaab94daf83839b9b9d81d7e",
+  "weighting": {
+    "cap": 10.0,
+    "method": "inverse_propensity"
+  }
+}

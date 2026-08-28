@@ -1,0 +1,52 @@
+name: submission-verification
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Install backend
+        run: python -m pip install -e ".[dev]"
+      - name: Install frontend
+        working-directory: apps/web
+        run: npm ci
+      - name: Backend tests
+        run: pytest -q
+      - name: Deterministic judge flow
+        run: python scripts/smoke.py --reset --fixture-flow --verify-audit --verify-eval
+        env:
+          PYTHONPATH: apps/api/src
+          DATABASE_URL: sqlite:///./ci.db
+          OPENROUTER_ENABLED: "false"
+          RAZORPAY_ENABLED: "false"
+      - name: Frozen evaluation and hardening
+        run: |
+          python scripts/evaluate.py
+          python scripts/harden.py
+        env:
+          PYTHONPATH: apps/api/src
+      - name: Frontend unit tests and build
+        working-directory: apps/web
+        run: |
+          npm test
+          npm run build
+      - name: Install Playwright browser
+        working-directory: apps/web
+        run: npx playwright install --with-deps chromium
+      - name: Browser tests
+        working-directory: apps/web
+        run: npm run test:e2e

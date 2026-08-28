@@ -1,0 +1,17 @@
+{
+  "dataset_sha256": "84d827c599b5e9ed7645777b1c6c7a8be4725339fc226b32de14c48e38397558",
+  "model_manifest_sha256": "23c07c392f86dbe85eb7d5681d4f3ccf35188b0ee004139bdfe2f44daf508cb3",
+  "openrouter_model": "liquid/lfm-2.5-2.6b:free",
+  "policy_hash": "c59492acca56f23043a80971d1a235808d018cdf317e98db27e78f7e8a3203fa",
+  "policy_source_sha256": "3fa83d375a339a55ebe0291dfe0838395bcefbaa4b3a3086b22bdfc0a7e760ff",
+  "prompt_hashes": {
+    "challenge-v1.txt": "47a47797844a015e5aa3bf2f14c08a8395cecadea916bb6147e55dc7ed7dfe3f",
+    "diagnose-v1.txt": "68e4ef3a8aa923fec04f54c25836688590765d0b7d8eaf82c35d85789d63f8f4"
+  },
+  "run_timestamp": "2026-08-27T16:56:13.464753+00:00",
+  "schema_hashes": {
+    "challenge-v1.json": "48ba769a3cb1be61f1fce3229e6f67208ed01006740fdf3da7487f3e1ad57c09",
+    "diagnosis-v1.json": "75e98f496e0cd1d532c6211e6725b1074444013e4e2f5ce1f9ddd222c909acc8"
+  },
+  "seed": 20260826
+}

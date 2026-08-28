@@ -1,0 +1,15 @@
+{
+  "eval_potential_outcomes_sha256": "84d827c599b5e9ed7645777b1c6c7a8be4725339fc226b32de14c48e38397558",
+  "evaluation_family_counts": {
+    "method_friction": 15,
+    "negative_value": 10,
+    "nudge_responsive": 10,
+    "retry_recoverable": 20,
+    "uncertain": 5
+  },
+  "evaluation_rows": 60,
+  "generator_version": "synthetic-dgp-v1",
+  "seed": 20260826,
+  "train_logged_sha256": "506235eef40c0fd17ddecd07b58521bb11a8754efaab94daf83839b9b9d81d7e",
+  "train_rows": 2000
+}

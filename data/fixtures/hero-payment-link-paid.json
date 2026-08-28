@@ -1,0 +1,16 @@
+{
+  "event": "payment_link.paid",
+  "created_at": 1787720400,
+  "payload": {
+    "payment_link": {
+      "entity": {
+        "id": "plink_test_hero_001",
+        "status": "paid",
+        "reference_id": "rec_c08af14db72c_cb20ab2677eb",
+        "amount": 499900,
+        "amount_paid": 499900,
+        "currency": "INR"
+      }
+    }
+  }
+}

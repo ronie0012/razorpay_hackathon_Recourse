@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ChallengeOutputV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["verdict", "objection_reason", "evidence_ids", "missing_checks", "severity", "recommendation"],
+  "properties": {
+    "verdict": {"enum": ["NO_BLOCKING_OBJECTION", "OBJECTION"]},
+    "objection_reason": {"enum": ["NONE", "ALREADY_PAID", "ACTIVE_LINK_EXISTS", "TEST_MODE_REQUIRED", "LOW_EVIDENCE_QUALITY", "OPT_OUT", "QUIET_HOURS", "CONTACT_BUDGET", "ATTEMPT_BUDGET", "HIGH_UNCERTAINTY", "NON_POSITIVE_VALUE", "PROVIDER_UNHEALTHY", "DUPLICATE_ACTION"]},
+    "evidence_ids": {"type": "array", "maxItems": 8, "items": {"type": "string"}},
+    "missing_checks": {"type": "array", "maxItems": 8, "items": {"enum": ["order_already_paid", "active_link_exists", "test_mode", "provider_health", "command_idempotency"]}},
+    "severity": {"enum": ["LOW", "MEDIUM", "HIGH"]},
+    "recommendation": {"enum": ["ALLOW_REVIEW", "BLOCK", "REQUEST_HUMAN_REVIEW"]}
+  }
+}
+

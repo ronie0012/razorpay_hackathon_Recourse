@@ -1,0 +1,21 @@
+{
+  "amount_subunits": 499900,
+  "case_id": "case_14e75efe2396c08af14db72c",
+  "currency": "INR",
+  "decision_id": "dec_30e3d43768facb20ab2677eb",
+  "mode": "RAZORPAY TEST MODE",
+  "notify": {
+    "email": false,
+    "sms": false
+  },
+  "paid_verified": false,
+  "passed": true,
+  "provider_delivered_webhook": false,
+  "provider_resource_id": "plink_TUrnotNBGf6Je8",
+  "provider_status": "created",
+  "purpose": "live_razorpay_test_mode_link",
+  "reference_id": "rec_c08af14db72c_cb20ab2677eb",
+  "reminder_enable": false,
+  "run_timestamp": "2026-08-27T16:53:07.739037+00:00",
+  "secrets_persisted": false
+}

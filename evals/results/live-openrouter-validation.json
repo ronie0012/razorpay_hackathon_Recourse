@@ -1,0 +1,22 @@
+{
+  "cached": false,
+  "diagnosis_status": "SUPPORTED",
+  "fallback_reason": null,
+  "fallback_used": false,
+  "input_hash": "9b452947ee1180b9a8a60f4bd676dd861121c37b802da7f3ebbf399dae3c22bb",
+  "input_tokens": 1756,
+  "latency_ms": 47154,
+  "model": "liquid/lfm-2.5-2.6b:free",
+  "output_tokens": 1287,
+  "passed": true,
+  "prompt_hash": "68e4ef3a8aa923fec04f54c25836688590765d0b7d8eaf82c35d85789d63f8f4",
+  "provider": "openrouter",
+  "purpose": "live_openrouter_schema_and_evidence_gate",
+  "raw_model_output_persisted": false,
+  "repaired": true,
+  "resolved_evidence_count": 2,
+  "response_hash": "f410b7b3a2c9cd98cedea4dc22a0fe146164ba12ada77e3b01cb703d03445620",
+  "run_timestamp": "2026-08-27T16:52:31.657955+00:00",
+  "schema_hash": "048c0ddb7f1e1aebee167a1883c889bd426cdf37b6712236fd0c8c57a3f6f236",
+  "secrets_persisted": false
+}
