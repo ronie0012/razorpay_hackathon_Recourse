@@ -111,6 +111,7 @@ Provider timeout, rate limit, missing credits, bad JSON and unsupported evidence
 - [Data card](data/data_card.md)
 - [Final evaluation](evals/results/final-evaluation.md)
 - [Security and hardening](docs/security.md)
+- [Live provider validation](docs/live_validation.md)
 - [Five-minute demo script](docs/demo_script.md)
 - [Submission checklist](docs/submission_checklist.md)
 - [Buildathon blueprint](RECOURSE_BUILDATHON_BLUEPRINT.md)

@@ -10,7 +10,7 @@
 ## Provider proof
 
 - [x] Sanitized live OpenRouter validation artifact shows schema/evidence verification without fallback.
-- [ ] Razorpay Test Mode validation artifact records policy-approved link creation and paid reconciliation.
+- [x] Razorpay Test Mode validation artifact records policy-approved link creation and paid reconciliation.
 - [ ] A public Razorpay webhook callback and distinct webhook secret are configured if claiming provider-delivered webhook proof.
 
 ## Official Buildathon requirements verified on 2026-08-27

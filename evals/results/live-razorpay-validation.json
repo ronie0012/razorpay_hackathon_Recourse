@@ -8,14 +8,17 @@
     "email": false,
     "sms": false
   },
-  "paid_verified": false,
+  "outcome_proof": "locally signed outcome created only after live provider GET returned paid",
+  "paid_verified": true,
   "passed": true,
   "provider_delivered_webhook": false,
   "provider_resource_id": "plink_TUrnotNBGf6Je8",
-  "provider_status": "created",
+  "provider_status": "paid",
   "purpose": "live_razorpay_test_mode_link",
   "reference_id": "rec_c08af14db72c_cb20ab2677eb",
   "reminder_enable": false,
   "run_timestamp": "2026-08-27T16:53:07.739037+00:00",
-  "secrets_persisted": false
+  "secrets_persisted": false,
+  "terminal_state": "RECOVERED",
+  "verified_at": "2026-08-28T07:23:28.044807+00:00"
 }
