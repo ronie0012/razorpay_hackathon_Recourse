@@ -35,7 +35,7 @@
       "uvicorn": "0.46.0"
     }
   },
-  "run_timestamp": "2026-08-28T07:24:24.241150+00:00",
+  "run_timestamp": "2026-08-28T10:33:44.312808+00:00",
   "secret_and_placeholder_findings": [],
   "secret_and_placeholder_scan_passed": true,
   "source_file_count": 76
