@@ -26,8 +26,16 @@ services:
       - key: TEST_MODE
         value: "true"
       - key: OPENROUTER_ENABLED
-        value: "false"
+        value: "true"
+      - key: OPENROUTER_API_KEY
+        sync: false
       - key: RAZORPAY_ENABLED
-        value: "false"
+        value: "true"
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
       - key: CORS_ORIGINS
         value: https://recourse-razorpay-recovery.vercel.app
