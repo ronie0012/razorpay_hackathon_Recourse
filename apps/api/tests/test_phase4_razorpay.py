@@ -119,6 +119,23 @@ class DuplicateThenReconciledClient:
         }
 
 
+class DelayedReconciliationClient(DuplicateThenReconciledClient):
+    def __init__(self):
+        super().__init__()
+        self.create_calls = 0
+        self.find_calls = 0
+
+    async def create_payment_link(self, payload):
+        self.create_calls += 1
+        return await super().create_payment_link(payload)
+
+    async def find_payment_link(self, reference_id):
+        self.find_calls += 1
+        if self.find_calls == 1:
+            return None
+        return await super().find_payment_link(reference_id)
+
+
 def test_ambiguous_create_reconciles_without_a_second_link(tmp_path):
     engine = create_engine(f"sqlite:///{tmp_path / 'reconcile.db'}")
     Base.metadata.create_all(engine)
@@ -188,6 +205,33 @@ def test_duplicate_reference_reconciles_existing_paid_link(tmp_path):
         assert result["state"] == "RECOVERED"
         execution = session.scalar(select(ExecutionRow))
         assert execution.provider_status == "paid"
+
+
+def test_reconciliation_can_resume_without_creating_a_second_link(tmp_path):
+    engine = create_engine(f"sqlite:///{tmp_path / 'delayed-reconciliation.db'}")
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, expire_on_commit=False)
+    settings = Settings(
+        openrouter_enabled=False, razorpay_enabled=True, test_mode=True,
+        razorpay_key_id="rzp_test_demo", razorpay_key_secret="secret",
+    )
+    body = Path("data/fixtures/hero-payment-failed.json").read_bytes()
+    signature = hmac.new(settings.fixture_webhook_secret.encode(), body, hashlib.sha256).hexdigest()
+    provider = DelayedReconciliationClient()
+    with factory() as session:
+        case, _ = ingest_signed_event(
+            session, body=body, signature=signature,
+            event_id="fixture_delayed_reconciliation_v1", settings=settings,
+        )
+        asyncio.run(analyze_case(session, case.case_id, settings))
+        first = asyncio.run(execute_action(session, case.case_id, settings, provider))
+        assert first["reason"] == "RECONCILING"
+        resumed = asyncio.run(execute_action(session, case.case_id, settings, provider))
+        assert resumed["executed"] is True
+        assert resumed["state"] == "RECOVERED"
+        assert provider.create_calls == 1
+        assert provider.find_calls == 2
+        assert len(session.scalars(select(ExecutionRow)).all()) == 1
 
 
 def test_live_key_can_never_enable_adapter():

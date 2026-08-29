@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
-import json
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -14,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from recourse.config import Settings
 from recourse.domain.audit import append_audit, canonical_json
-from recourse.domain.models import Action, CaseState, PaymentFailureCase
+from recourse.domain.models import Action, ActionCommand, CaseState, PaymentFailureCase
 from recourse.services import _transition, build_command, get_analysis
 from recourse.persistence.tables import CaseRow, ExecutionRow
 
@@ -125,6 +124,42 @@ def _provider_payload(case: PaymentFailureCase, command) -> dict[str, Any]:
     }
 
 
+def _finish_payment_link(
+    session: Session, case_id: str, execution: ExecutionRow,
+    command: ActionCommand, response: dict[str, Any],
+) -> dict:
+    case_row = session.get(CaseRow, case_id)
+    session.refresh(case_row)
+    if response.get("reference_id") != command.reference_id:
+        raise RazorpayAdapterError("REFERENCE_MISMATCH", "provider response reference does not match command")
+    execution.provider_resource_id = str(response["id"])
+    execution.provider_status = str(response.get("status", "created"))
+    execution.response_redacted_json = canonical_json({
+        "id": response["id"], "status": response.get("status"),
+        "reference_id": response.get("reference_id"), "short_url": response.get("short_url"),
+    })
+    execution.completed_at = datetime.now(timezone.utc)
+    # A paid webhook may have arrived while the provider call was in flight.
+    if CaseState(case_row.state) != CaseState.RECOVERED:
+        if CaseState(case_row.state) == CaseState.EXECUTING:
+            _transition(session, case_row, CaseState.LINK_ISSUED)
+        reconciled_terminal = {
+            "paid": CaseState.RECOVERED,
+            "expired": CaseState.EXPIRED,
+            "cancelled": CaseState.CANCELLED,
+        }.get(str(response.get("status")))
+        if reconciled_terminal and CaseState(case_row.state) != reconciled_terminal:
+            _transition(session, case_row, reconciled_terminal)
+    append_audit(session, case_id=case_id, event_type="PAYMENT_LINK_RECONCILED", payload={
+        "provider_resource_id": response["id"], "reference_id": command.reference_id,
+        "provider_status": execution.provider_status, "mode": "RAZORPAY TEST MODE",
+    })
+    session.commit()
+    return {"executed": True, "reason": "RAZORPAY_TEST_MODE", "command": command.model_dump(mode="json"),
+            "provider_resource_id": response["id"], "state": case_row.state,
+            "mode_label": "RAZORPAY TEST MODE — NO REAL MONEY"}
+
+
 async def execute_action(session: Session, case_id: str, settings: Settings,
                          client: RazorpayClient | None = None) -> dict:
     if session.bind is not None and session.bind.dialect.name == "sqlite":
@@ -134,7 +169,24 @@ async def execute_action(session: Session, case_id: str, settings: Settings,
         return {"executed": False, "reason": analysis.decision.status, "command": None}
     existing = session.scalar(select(ExecutionRow).where(ExecutionRow.case_id == case_id))
     if existing:
-        return {"executed": False, "reason": "DUPLICATE_ACTION", "command": json.loads(existing.request_redacted_json)}
+        command = ActionCommand.model_validate_json(existing.request_redacted_json)
+        if (
+            existing.provider_status in {"PENDING_PROVIDER", "RECONCILING"}
+            and command.action == Action.STANDARD_PAYMENT_LINK
+            and settings.razorpay_enabled
+            and settings.test_mode
+        ):
+            provider = client or HttpRazorpayClient(settings)
+            try:
+                response = await provider.find_payment_link(command.reference_id)
+            except RazorpayAdapterError as reconcile_exc:
+                return {"executed": False, "reason": "RECONCILING", "error": reconcile_exc.code,
+                        "command": command.model_dump(mode="json")}
+            if response is None:
+                return {"executed": False, "reason": "RECONCILING",
+                        "command": command.model_dump(mode="json")}
+            return _finish_payment_link(session, case_id, existing, command, response)
+        return {"executed": False, "reason": "DUPLICATE_ACTION", "command": command.model_dump(mode="json")}
     case_row = session.get(CaseRow, case_id)
     case = PaymentFailureCase.model_validate_json(case_row.normalized_json)
     command = build_command(case, analysis.decision, settings)
@@ -194,35 +246,7 @@ async def execute_action(session: Session, case_id: str, settings: Settings,
             return {"executed": False, "reason": "RECONCILING", "command": command.model_dump(mode="json")}
 
     execution = session.get(ExecutionRow, execution.id)
-    case_row = session.get(CaseRow, case_id)
-    session.refresh(case_row)
-    if response.get("reference_id") != command.reference_id:
-        raise RazorpayAdapterError("REFERENCE_MISMATCH", "provider response reference does not match command")
-    execution.provider_resource_id = str(response["id"])
-    execution.provider_status = str(response.get("status", "created"))
-    execution.response_redacted_json = canonical_json({
-        "id": response["id"], "status": response.get("status"),
-        "reference_id": response.get("reference_id"), "short_url": response.get("short_url"),
-    })
-    execution.completed_at = datetime.now(timezone.utc)
-    # A paid webhook may have arrived while the provider call was in flight.
-    if CaseState(case_row.state) != CaseState.RECOVERED:
-        _transition(session, case_row, CaseState.LINK_ISSUED)
-        reconciled_terminal = {
-            "paid": CaseState.RECOVERED,
-            "expired": CaseState.EXPIRED,
-            "cancelled": CaseState.CANCELLED,
-        }.get(str(response.get("status")))
-        if reconciled_terminal:
-            _transition(session, case_row, reconciled_terminal)
-    append_audit(session, case_id=case_id, event_type="PAYMENT_LINK_RECONCILED", payload={
-        "provider_resource_id": response["id"], "reference_id": command.reference_id,
-        "provider_status": execution.provider_status, "mode": "RAZORPAY TEST MODE",
-    })
-    session.commit()
-    return {"executed": True, "reason": "RAZORPAY_TEST_MODE", "command": command.model_dump(mode="json"),
-            "provider_resource_id": response["id"], "state": case_row.state,
-            "mode_label": "RAZORPAY TEST MODE — NO REAL MONEY"}
+    return _finish_payment_link(session, case_id, execution, command, response)
 
 
 async def create_checkout_order(settings: Settings, *, amount_subunits: int, currency: str = "INR") -> dict:
