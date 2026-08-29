@@ -6,6 +6,7 @@ import asyncio
 from pathlib import Path
 
 import pytest
+import httpx
 
 from recourse.config import Settings
 from sqlalchemy import create_engine, select
@@ -13,7 +14,7 @@ from sqlalchemy.orm import sessionmaker
 
 from recourse.persistence.database import Base
 from recourse.persistence.tables import ExecutionRow
-from recourse.razorpay.adapter import HttpRazorpayClient, RazorpayAdapterError, execute_action
+from recourse.razorpay.adapter import HttpRazorpayClient, RazorpayAdapterError, _safe_provider_error, execute_action
 from recourse.services import analyze_case, ingest_signed_event
 
 
@@ -117,3 +118,13 @@ def test_live_key_can_never_enable_adapter():
         HttpRazorpayClient(Settings(
             razorpay_enabled=True, razorpay_key_id="rzp_live_forbidden", razorpay_key_secret="secret",
         ))
+
+
+def test_provider_validation_error_is_bounded_and_excludes_request_data():
+    response = httpx.Response(400, json={"error": {
+        "description": "reference_id must be unique", "field": "reference_id",
+        "metadata": {"secret": "must-not-leak"},
+    }})
+    message = _safe_provider_error(response)
+    assert message == "reference_id must be unique (field: reference_id)"
+    assert "must-not-leak" not in message

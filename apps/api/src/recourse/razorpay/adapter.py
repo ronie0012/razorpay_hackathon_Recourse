@@ -26,6 +26,18 @@ class RazorpayAdapterError(RuntimeError):
         self.ambiguous = ambiguous
 
 
+def _safe_provider_error(response: httpx.Response) -> str:
+    """Return only Razorpay's bounded validation description, never request data."""
+    try:
+        error = response.json().get("error", {})
+        description = str(error.get("description") or "Razorpay request failed")
+        field = error.get("field")
+    except (ValueError, AttributeError, TypeError):
+        description, field = "Razorpay request failed", None
+    description = " ".join(description.split())[:240]
+    return f"{description} (field: {field})" if field else description
+
+
 class RazorpayClient(Protocol):
     async def create_payment_link(self, payload: dict[str, Any]) -> dict[str, Any]: ...
     async def find_payment_link(self, reference_id: str) -> dict[str, Any] | None: ...
@@ -61,7 +73,9 @@ class HttpRazorpayClient:
             except httpx.TransportError as exc:
                 raise RazorpayAdapterError("RAZORPAY_TRANSPORT", "Razorpay transport failed", ambiguous=method == "POST") from exc
             if response.status_code >= 400:
-                raise RazorpayAdapterError(f"RAZORPAY_HTTP_{response.status_code}", "Razorpay request failed")
+                raise RazorpayAdapterError(
+                    f"RAZORPAY_HTTP_{response.status_code}", _safe_provider_error(response)
+                )
             return response
         finally:
             if own:
