@@ -249,3 +249,26 @@ def test_provider_validation_error_is_bounded_and_excludes_request_data():
     message = _safe_provider_error(response)
     assert message == "reference_id must be unique (field: reference_id)"
     assert "must-not-leak" not in message
+
+
+def test_http_client_parses_razorpay_payment_links_collection():
+    reference_id = "rec_case123_decision456"
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.params["reference_id"] == reference_id
+        return httpx.Response(200, json={"payment_links": [{
+            "id": "plink_test_existing", "status": "paid",
+            "reference_id": reference_id, "short_url": "https://rzp.io/i/test-existing",
+        }]})
+
+    settings = Settings(
+        razorpay_enabled=True, test_mode=True,
+        razorpay_key_id="rzp_test_demo", razorpay_key_secret="secret",
+    )
+    async def fetch():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http_client:
+            return await HttpRazorpayClient(settings, http_client).find_payment_link(reference_id)
+
+    result = asyncio.run(fetch())
+    assert result["id"] == "plink_test_existing"
+    assert result["status"] == "paid"

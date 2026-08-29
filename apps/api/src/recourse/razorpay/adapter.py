@@ -107,8 +107,8 @@ class HttpRazorpayClient:
         response = await self._request("GET", "/payment_links", params={"reference_id": reference_id})
         try:
             data = response.json()
-            items = data.get("items", [])
-            return next((item for item in items if item.get("reference_id") == reference_id), None)
+            payment_links = data.get("payment_links", data.get("items", []))
+            return next((link for link in payment_links if link.get("reference_id") == reference_id), None)
         except (ValueError, AttributeError, TypeError) as exc:
             raise RazorpayAdapterError("RAZORPAY_RESPONSE_SHAPE", "invalid reconciliation response") from exc
 
