@@ -177,7 +177,10 @@ async def execute_action(session: Session, case_id: str, settings: Settings,
         })
         session.commit()
         if not exc.ambiguous:
-            return {"executed": False, "reason": exc.code, "command": command.model_dump(mode="json")}
+            return {
+                "executed": False, "reason": exc.code, "error": str(exc),
+                "command": command.model_dump(mode="json"),
+            }
         try:
             response = await provider.find_payment_link(command.reference_id)
         except RazorpayAdapterError as reconcile_exc:

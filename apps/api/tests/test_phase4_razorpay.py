@@ -90,6 +90,16 @@ class AmbiguousThenReconciledClient:
                 "short_url": "https://rzp.io/i/test-only"}
 
 
+class RejectedClient:
+    async def create_payment_link(self, _payload):
+        raise RazorpayAdapterError(
+            "RAZORPAY_HTTP_400", "reference_id must be unique (field: reference_id)"
+        )
+
+    async def find_payment_link(self, _reference_id):
+        raise AssertionError("non-ambiguous failures must not reconcile")
+
+
 def test_ambiguous_create_reconciles_without_a_second_link(tmp_path):
     engine = create_engine(f"sqlite:///{tmp_path / 'reconcile.db'}")
     Base.metadata.create_all(engine)
@@ -111,6 +121,28 @@ def test_ambiguous_create_reconciles_without_a_second_link(tmp_path):
         executions = session.scalars(select(ExecutionRow)).all()
         assert len(executions) == 1
         assert executions[0].provider_status == "created"
+
+
+def test_non_ambiguous_provider_error_returns_safe_description(tmp_path):
+    engine = create_engine(f"sqlite:///{tmp_path / 'rejected.db'}")
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, expire_on_commit=False)
+    settings = Settings(
+        openrouter_enabled=False, razorpay_enabled=True, test_mode=True,
+        razorpay_key_id="rzp_test_demo", razorpay_key_secret="secret",
+    )
+    body = Path("data/fixtures/hero-payment-failed.json").read_bytes()
+    signature = hmac.new(settings.fixture_webhook_secret.encode(), body, hashlib.sha256).hexdigest()
+    with factory() as session:
+        case, _ = ingest_signed_event(
+            session, body=body, signature=signature,
+            event_id="fixture_rejected_link_v1", settings=settings,
+        )
+        asyncio.run(analyze_case(session, case.case_id, settings))
+        result = asyncio.run(execute_action(session, case.case_id, settings, RejectedClient()))
+        assert result["executed"] is False
+        assert result["reason"] == "RAZORPAY_HTTP_400"
+        assert result["error"] == "reference_id must be unique (field: reference_id)"
 
 
 def test_live_key_can_never_enable_adapter():
