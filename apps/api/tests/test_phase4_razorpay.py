@@ -100,6 +100,25 @@ class RejectedClient:
         raise AssertionError("non-ambiguous failures must not reconcile")
 
 
+class DuplicateThenReconciledClient:
+    def __init__(self):
+        self.reference_id = None
+
+    async def create_payment_link(self, payload):
+        self.reference_id = payload["reference_id"]
+        raise RazorpayAdapterError(
+            "RAZORPAY_HTTP_400",
+            f"payment link with given reference_id: {self.reference_id} already exists",
+        )
+
+    async def find_payment_link(self, reference_id):
+        assert reference_id == self.reference_id
+        return {
+            "id": "plink_test_existing", "status": "paid", "reference_id": reference_id,
+            "short_url": "https://rzp.io/i/test-existing",
+        }
+
+
 def test_ambiguous_create_reconciles_without_a_second_link(tmp_path):
     engine = create_engine(f"sqlite:///{tmp_path / 'reconcile.db'}")
     Base.metadata.create_all(engine)
@@ -143,6 +162,32 @@ def test_non_ambiguous_provider_error_returns_safe_description(tmp_path):
         assert result["executed"] is False
         assert result["reason"] == "RAZORPAY_HTTP_400"
         assert result["error"] == "reference_id must be unique (field: reference_id)"
+
+
+def test_duplicate_reference_reconciles_existing_paid_link(tmp_path):
+    engine = create_engine(f"sqlite:///{tmp_path / 'duplicate-reference.db'}")
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine, expire_on_commit=False)
+    settings = Settings(
+        openrouter_enabled=False, razorpay_enabled=True, test_mode=True,
+        razorpay_key_id="rzp_test_demo", razorpay_key_secret="secret",
+    )
+    body = Path("data/fixtures/hero-payment-failed.json").read_bytes()
+    signature = hmac.new(settings.fixture_webhook_secret.encode(), body, hashlib.sha256).hexdigest()
+    with factory() as session:
+        case, _ = ingest_signed_event(
+            session, body=body, signature=signature,
+            event_id="fixture_duplicate_reference_v1", settings=settings,
+        )
+        asyncio.run(analyze_case(session, case.case_id, settings))
+        result = asyncio.run(execute_action(
+            session, case.case_id, settings, DuplicateThenReconciledClient()
+        ))
+        assert result["executed"] is True
+        assert result["provider_resource_id"] == "plink_test_existing"
+        assert result["state"] == "RECOVERED"
+        execution = session.scalar(select(ExecutionRow))
+        assert execution.provider_status == "paid"
 
 
 def test_live_key_can_never_enable_adapter():

@@ -169,14 +169,18 @@ async def execute_action(session: Session, case_id: str, settings: Settings,
     try:
         response = await provider.create_payment_link(payload)
     except RazorpayAdapterError as exc:
+        duplicate_reference = (
+            exc.code == "RAZORPAY_HTTP_400" and "already exists" in str(exc).lower()
+        )
         execution = session.get(ExecutionRow, execution.id)
         execution.error_code = exc.code
-        execution.provider_status = "RECONCILING" if exc.ambiguous else "FAILED"
+        execution.provider_status = "RECONCILING" if exc.ambiguous or duplicate_reference else "FAILED"
         append_audit(session, case_id=case_id, event_type="PAYMENT_LINK_PROVIDER_ERROR", payload={
-            "code": exc.code, "ambiguous": exc.ambiguous, "reference_id": command.reference_id,
+            "code": exc.code, "ambiguous": exc.ambiguous,
+            "duplicate_reference": duplicate_reference, "reference_id": command.reference_id,
         })
         session.commit()
-        if not exc.ambiguous:
+        if not exc.ambiguous and not duplicate_reference:
             return {
                 "executed": False, "reason": exc.code, "error": str(exc),
                 "command": command.model_dump(mode="json"),
@@ -204,6 +208,13 @@ async def execute_action(session: Session, case_id: str, settings: Settings,
     # A paid webhook may have arrived while the provider call was in flight.
     if CaseState(case_row.state) != CaseState.RECOVERED:
         _transition(session, case_row, CaseState.LINK_ISSUED)
+        reconciled_terminal = {
+            "paid": CaseState.RECOVERED,
+            "expired": CaseState.EXPIRED,
+            "cancelled": CaseState.CANCELLED,
+        }.get(str(response.get("status")))
+        if reconciled_terminal:
+            _transition(session, case_row, reconciled_terminal)
     append_audit(session, case_id=case_id, event_type="PAYMENT_LINK_RECONCILED", payload={
         "provider_resource_id": response["id"], "reference_id": command.reference_id,
         "provider_status": execution.provider_status, "mode": "RAZORPAY TEST MODE",
