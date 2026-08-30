@@ -1,4 +1,4 @@
-import type { Analysis, AuditEvent, CaseDetail, CaseSummary, CheckoutOrder, EvaluationReport, ExecutionStatus, Readiness, SurgeryResult } from './types'
+import type { Analysis, AuditEvent, CaseDetail, CaseSummary, CheckoutOrder, EvaluationReplay, EvaluationReport, ExecutionStatus, IntegrationProofData, ProductionProofData, Readiness, SurgeryResult } from './types'
 
 const json = async <T>(response: Response): Promise<T> => {
   const payload = await response.json()
@@ -24,4 +24,7 @@ export const api = {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(mutations),
   }).then(json<SurgeryResult>),
   evaluation: (): Promise<EvaluationReport> => fetch('/api/v1/evaluation').then(json<EvaluationReport>),
+  evaluationReplay: (): Promise<EvaluationReplay> => fetch('/api/v1/evaluation/replay').then(json<EvaluationReplay>),
+  integrationProof: (id: string): Promise<IntegrationProofData> => fetch(`/api/v1/cases/${id}/integration-proof`).then(json<IntegrationProofData>),
+  productionProof: (): Promise<ProductionProofData> => fetch('/api/v1/production-proof').then(json<ProductionProofData>),
 }

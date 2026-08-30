@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { api } from './api'
 import type { Analysis, AuditEvent, CaseDetail, ExecutionStatus } from './types'
+import IntegrationProof from './IntegrationProof'
 
 type JourneyStage = 'idle' | 'creating_checkout' | 'checkout_open' | 'waiting_webhook' | 'failure_received' | 'agent_running' | 'action_issued' | 'recovered' | 'error'
 type JourneyMode = 'guided' | 'razorpay' | null
@@ -47,6 +48,7 @@ const timeline = [
   ['Recommendation challenged', 'A second pass searches for unsupported or unsafe action.'],
   ['Policy verified', 'Deterministic guardrails make the final decision.'],
   ['Recovery issued', 'At most one signed Test Mode command is emitted.'],
+  ['Outcome reconciled', 'A paid webhook or authenticated provider lookup marks the case recovered.'],
 ]
 
 export default function LiveRecovery() {
@@ -186,20 +188,20 @@ export default function LiveRecovery() {
 
   const selected = analysis?.futures.find(future => future.action === analysis.decision.selected_action)
   const hypothesis = analysis?.diagnosis.hypotheses[0]
-  const completedSteps = analysis ? (execution?.issued ? 6 : 5) : detail ? 1 : 0
+  const completedSteps = stage === 'recovered' ? 7 : analysis ? (execution?.issued ? 6 : 5) : detail ? 1 : 0
   const busy = guided.isPending || live.isPending || stage === 'waiting_webhook' || stage === 'agent_running'
   const apiVerified = detail?.case.source === 'razorpay_api_verified' || audit.some(event => event.event_type === 'PAYMENT_FAILURE_API_VERIFIED')
 
   return <>
     <section className="live-hero">
-      <div><p className="eyebrow">Live recovery journey · from failure to next action</p><h1>Watch the agent<br/><em>earn the recovery.</em></h1><p>Trigger a failed payment, follow every verified decision, and see exactly what RECOURSE recommends next.</p></div>
+      <div><p className="eyebrow">The five-minute judging story</p><h1>Watch the agent<br/><em>earn the recovery.</em></h1><p>Start with lost revenue, trigger a failure, inspect the safe decision, and finish with a reconciled recovery—then verify the result across 60 frozen cases.</p></div>
       <div className="readiness-card"><span className={readiness.data?.razorpay_test_mode_configured ? 'ready-dot online' : 'ready-dot'}/><div><b>{readiness.data?.razorpay_test_mode_configured ? 'Razorpay Test Mode ready' : 'Guided demo ready'}</b><small>{readiness.data?.razorpay_test_mode_configured ? 'Provider checkout + webhook/API verification' : 'Signed fixture · identical decision path'}</small></div></div>
     </section>
 
-    {stage === 'idle' && <div className="journey-launch">
-      <section className="panel launch-card primary-launch"><span className="launch-number">01</span><p className="eyebrow">Always available</p><h2>Run a guided failed payment</h2><p>A fresh, signed Test Mode-shaped event travels through ingestion, diagnosis, challenge, policy, and safe offline execution.</p><button data-testid="start-guided-journey" className="button-primary" onClick={() => guided.mutate()}>Start end-to-end demo</button><small>Clearly labelled simulation · no real money</small></section>
-      <section className="panel launch-card"><span className="launch-number">02</span><p className="eyebrow">Provider connected</p><h2>Attempt a Razorpay Test payment</h2><p>Open the hosted Test Checkout, intentionally fail the payment, and wait for the provider-signed webhook.</p><button data-testid="start-live-checkout" className="button-secondary" disabled={!readiness.data?.razorpay_test_mode_configured} onClick={() => live.mutate()}>Open Razorpay Test Checkout</button><small>{readiness.data?.razorpay_test_mode_configured ? 'Use a Razorpay Test Mode failure method' : readiness.data?.razorpay_test_mode_missing?.length ? `Missing: ${readiness.data.razorpay_test_mode_missing.join(' · ')}` : 'Checking Test Mode configuration…'}</small></section>
-    </div>}
+    {stage === 'idle' && <><ol className="judge-story"><li><b>₹X lost</b></li><li>Payment fails</li><li>AI diagnoses</li><li>Futures compared</li><li>Challenger checks</li><li>Policy authorizes</li><li>Razorpay reconciles</li><li><b>₹Y net · 0 violations</b></li></ol><div className="journey-launch">
+      <section className="panel launch-card primary-launch"><span className="launch-number">01</span><p className="eyebrow">90-second judge simulation</p><h2>See the complete decision loop now</h2><p>A fresh signed fixture travels through the same ingestion, diagnosis, challenge, policy, idempotency, and recovery state machine.</p><button data-testid="start-guided-journey" className="button-primary" onClick={() => guided.mutate()}>Run 90-second simulation</button><small>Clearly labelled signed simulation · no provider claim</small></section>
+      <section className="panel launch-card"><span className="launch-number">02</span><p className="eyebrow">Authentic Razorpay Test Mode journey</p><h2>Complete a real Test payment loop</h2><p>Failed checkout → signed webhook → agent decision → payment link → Test completion → payment webhook → recovered.</p><button data-testid="start-live-checkout" className="button-secondary" disabled={!readiness.data?.razorpay_test_mode_configured} onClick={() => live.mutate()}>Start authentic Test Mode journey</button><small>{readiness.data?.razorpay_test_mode_configured ? 'Provider checkout, payment link, outcome webhook/API reconciliation · no real money' : readiness.data?.razorpay_test_mode_missing?.length ? `Missing: ${readiness.data.razorpay_test_mode_missing.join(' · ')}` : 'Checking Test Mode configuration…'}</small></section>
+    </div></>}
 
     {stage !== 'idle' && <div className="journey-grid">
       <section className="panel journey-stage">
@@ -216,15 +218,16 @@ export default function LiveRecovery() {
         <p className="eyebrow">What should we do next?</p>
         {!analysis ? <div className="recommendation-empty"><span>◇</span><p>The recommendation appears only after verified evidence, counterfactual comparison, and policy checks complete.</p></div> : <>
           <div className="recommendation-title"><div><small>Likely cause</small><b>{words(hypothesis?.cause ?? 'unknown')}</b></div><span>{pct(hypothesis?.confidence ?? 0)} confidence</span></div>
-          <div className="next-action"><small>Recommended next action</small><h2>{words(analysis.decision.selected_action)}</h2><p>{analysis.challenge.objections.length ? `Challenger raised: ${analysis.challenge.objections.map(words).join(', ')}` : 'Challenger found no supported blocking objection.'}</p></div>
+          <div className={`next-action ${analysis.challenge.objections.length ? 'challenger-catch' : ''}`}><small>{analysis.challenge.objections.length ? 'CHALLENGER CAUGHT AN UNSAFE RECOMMENDATION' : 'Recommended next action'}</small><h2>{words(analysis.decision.selected_action)}</h2><p>{analysis.challenge.objections.length ? `Action bounded because: ${analysis.challenge.objections.map(words).join(', ')}` : 'Challenger found no supported blocking objection.'}</p></div>
           {selected && <dl className="recommendation-metrics"><div><dt>Natural recovery</dt><dd>{pct(selected.no_action_probability)}</dd></div><div><dt>With this action</dt><dd>{pct(selected.success_probability)}</dd></div><div><dt>Conservative value</dt><dd>{money(selected.conservative_incremental_value_subunits)}</dd></div><div><dt>Guardrails</dt><dd>{analysis.decision.guardrail_results.every(result => result.passed) ? 'All pass' : 'Blocked'}</dd></div></dl>}
           {execution?.short_url && <a className="button-primary full" href={execution.short_url} target="_blank" rel="noreferrer">Open recommended Test payment link</a>}
-          {mode === 'guided' && execution?.issued && stage !== 'recovered' && <button data-testid="complete-guided-recovery" className="button-primary full" disabled={recover.isPending} onClick={() => recover.mutate()}>{recover.isPending ? 'Verifying outcome…' : 'Simulate customer completing recovery'}</button>}
+          {mode === 'guided' && execution?.issued && stage !== 'recovered' && <button data-testid="complete-guided-recovery" className="button-primary full" disabled={recover.isPending} onClick={() => recover.mutate()}>{recover.isPending ? 'Verifying signed outcome…' : 'Replay signed customer-paid outcome'}</button>}
           {stage === 'recovered' && <div className="recovered-callout"><b>Revenue recovered</b><span>{detail ? money(detail.case.amount_subunits, detail.case.currency) : ''}</span></div>}
         </>}
       </section>
     </div>}
 
     {audit.length > 0 && <details className="panel live-audit" open><summary><span><b>Signed audit evidence</b><small>{audit.length} append-only records from this journey</small></span><span>View trace</span></summary><div className="live-audit-grid">{audit.map(event => <article key={event.sequence}><span>{String(event.sequence).padStart(2, '0')}</span><div><b>{words(event.event_type)}</b><small>{new Date(event.created_at).toLocaleTimeString()}</small></div><code>{event.event_hash.slice(0, 12)}…</code></article>)}</div></details>}
+    {caseId && <IntegrationProof caseId={caseId}/>}
   </>
 }

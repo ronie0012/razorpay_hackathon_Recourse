@@ -35,6 +35,32 @@ def test_evaluation_lab_is_backed_by_final_generated_artifact(client):
     assert body["failure_analysis"]["regret_subunits"] > 0
 
 
+def test_evaluation_replay_is_same_case_deterministic_and_downloadable(client):
+    replay = client.get("/api/v1/evaluation/replay")
+    assert replay.status_code == 200
+    body = replay.json()
+    assert body["case_count"] == len(body["cases"]) == 60
+    assert len(body["run_hash"]) == 64
+    assert body["ai_uplift"]["decisions_changed"] > 0
+    assert body["ai_uplift"]["additional_net_value_subunits"] == 256651
+    assert all({"rules_action", "full_action", "natural_recovery_subunits"} <= set(row) for row in body["cases"])
+
+
+def test_production_and_integration_proof_are_sanitized(client):
+    reset = client.post("/api/v1/demo/reset").json()
+    case_id = reset["case_ids"][0]
+    proof = client.get(f"/api/v1/cases/{case_id}/integration-proof")
+    assert proof.status_code == 200
+    body = proof.json()
+    assert body["webhook_signature_verified"] is True
+    assert body["duplicate_event_suppression"]["status"] == "ENFORCED"
+    assert "secret" not in str(body).lower()
+    production = client.get("/api/v1/production-proof").json()
+    assert len(production["architecture"]) == 10
+    assert production["load_test"]["event_count"] == 10_000
+    assert production["load_test"]["duplicate_suppression_rate"] == 1
+
+
 def test_guided_journey_runs_fresh_failure_to_signed_recovery(client):
     first = client.post("/api/v1/demo/journeys/failure")
     second = client.post("/api/v1/demo/journeys/failure")

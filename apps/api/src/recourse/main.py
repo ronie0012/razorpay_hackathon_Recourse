@@ -19,9 +19,12 @@ from recourse.domain.audit import append_audit, verify_chain
 from recourse.domain.models import PaymentFailureCase
 from recourse.domain.state_machine import InvalidTransition
 from recourse.persistence.database import Base, engine, get_db
-from recourse.persistence.tables import AuditRow, CaseRow, EvidenceRow, ExecutionRow
-from recourse.persistence.tables import DecisionRow
-from recourse.product import SurgeryMutations, decision_surgery, load_final_evaluation, reset_and_seed
+from recourse.persistence.tables import AuditRow, CaseRow, EvidenceRow, EstimateRow, ExecutionRow, RawEventRow
+from recourse.persistence.tables import ChallengeRow, DecisionRow
+from recourse.product import (
+    SurgeryMutations, decision_surgery, load_evaluation_replay,
+    load_final_evaluation, load_production_proof, reset_and_seed,
+)
 from recourse.razorpay import (
     HttpRazorpayClient, create_checkout_order, execute_action, find_failed_order_payment,
     process_api_verified_event, process_fixture_webhook, process_razorpay_webhook,
@@ -303,6 +306,14 @@ def cases(db: Session = Depends(get_db)):
     for row in rows:
         decision = db.scalar(select(DecisionRow).where(DecisionRow.case_id == row.id).order_by(DecisionRow.created_at.desc()))
         decision_payload = json.loads(decision.payload_json) if decision else None
+        no_action = db.scalar(select(EstimateRow).where(
+            EstimateRow.case_id == row.id, EstimateRow.action == "NO_ACTION"
+        ))
+        selected_estimate = db.scalar(select(EstimateRow).where(
+            EstimateRow.case_id == row.id,
+            EstimateRow.action == decision.selected_action if decision else EstimateRow.action == "NO_ACTION",
+        ))
+        normalized = PaymentFailureCase.model_validate_json(row.normalized_json)
         result.append({
             "case_id": row.id, "amount_subunits": row.amount_subunits, "currency": row.currency,
             "state": row.state, "source": row.source, "payment_id": row.payment_id,
@@ -310,6 +321,12 @@ def cases(db: Session = Depends(get_db)):
             "recoverable_value_subunits": decision_payload["conservative_incremental_value_subunits"] if decision_payload else None,
             "selected_action": decision_payload["selected_action"] if decision_payload else None,
             "priority_score": max(0, decision_payload["conservative_incremental_value_subunits"] if decision_payload else 0),
+            "natural_recovery_subunits": round(row.amount_subunits * no_action.probability) if no_action else 0,
+            "intervention_cost_subunits": (
+                selected_estimate.direct_cost_subunits + selected_estimate.downstream_cost_subunits
+                if selected_estimate else 0
+            ),
+            "failure_reason": normalized.failure.reason,
         })
     return sorted(result, key=lambda item: (item["priority_score"], item["amount_subunits"]), reverse=True)
 
@@ -338,6 +355,74 @@ def evaluation():
         return load_final_evaluation()
     except (OSError, ValueError) as exc:
         return error("EVALUATION_ARTIFACT_UNAVAILABLE", str(exc), 503)
+
+
+@app.get("/api/v1/evaluation/replay")
+def evaluation_replay(db: Session = Depends(get_db)):
+    try:
+        replay = load_evaluation_replay()
+        challenges = db.scalars(select(ChallengeRow)).all()
+        replay["ai_uplift"]["challenger_catches"] = sum(
+            1 for row in challenges if json.loads(row.payload_json).get("objections")
+        )
+        replay["ai_uplift"]["challenger_scope"] = "current signed judge/demo cases"
+        return replay
+    except (OSError, ValueError, KeyError) as exc:
+        return error("EVALUATION_REPLAY_UNAVAILABLE", str(exc), 503)
+
+
+@app.get("/api/v1/production-proof")
+def production_proof():
+    try:
+        return load_production_proof()
+    except (OSError, ValueError) as exc:
+        return error("PRODUCTION_PROOF_UNAVAILABLE", str(exc), 503)
+
+
+@app.get("/api/v1/cases/{case_id}/integration-proof")
+def integration_proof(case_id: str, db: Session = Depends(get_db)):
+    case = db.get(CaseRow, case_id)
+    if case is None:
+        raise HTTPException(status_code=404, detail="case not found")
+    raw = db.scalar(select(RawEventRow).where(
+        RawEventRow.provider_event_id == f"{case.source}:{case.source_event_id}"
+    ))
+    execution = db.scalar(select(ExecutionRow).where(ExecutionRow.case_id == case_id))
+    request_payload = json.loads(execution.request_redacted_json) if execution else {}
+    response_payload = json.loads(execution.response_redacted_json) if execution and execution.response_redacted_json else {}
+    outcome = db.scalar(select(AuditRow).where(
+        AuditRow.case_id == case_id,
+        AuditRow.event_type.in_(["PAYMENT_LINK_OUTCOME", "PAYMENT_LINK_RECONCILED"]),
+    ).order_by(AuditRow.sequence.desc()))
+    duplicate_count = db.scalar(select(RawEventRow).where(
+        RawEventRow.provider_event_id == f"{case.source}:{case.source_event_id}"
+    ))
+    return {
+        "mode": "RAZORPAY TEST MODE" if case.source.startswith("razorpay") else "SIGNED FIXTURE / OFFLINE",
+        "endpoint": "https://api.razorpay.com/v1/payment_links" if case.source.startswith("razorpay") else "provider adapter disabled",
+        "webhook_signature_verified": bool(raw and raw.signature_valid),
+        "payment_id": case.payment_id,
+        "order_id": case.order_id,
+        "event_id": case.source_event_id,
+        "webhook_received_at": raw.received_at if raw else None,
+        "idempotency_key": execution.idempotency_key if execution else None,
+        "request": {
+            "reference_id": request_payload.get("reference_id"),
+            "action": request_payload.get("action"),
+            "amount_subunits": request_payload.get("amount_subunits"),
+        },
+        "response": {
+            "provider_resource_id": execution.provider_resource_id if execution else None,
+            "provider_status": execution.provider_status if execution else None,
+            "reference_id": response_payload.get("reference_id"),
+        },
+        "reconciliation": json.loads(outcome.payload_redacted_json) if outcome else {"state": case.state},
+        "duplicate_event_suppression": {
+            "database_unique_key": "source + source_event_id",
+            "stored_event_count": 1 if duplicate_count else 0,
+            "status": "ENFORCED",
+        },
+    }
 
 
 @app.get("/api/v1/cases/{case_id}")

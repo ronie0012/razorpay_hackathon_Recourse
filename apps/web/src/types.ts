@@ -2,7 +2,8 @@ export type Action = 'NO_ACTION' | 'RETRY_LATER' | 'STANDARD_PAYMENT_LINK' | 'ON
 
 export interface CaseSummary {
   case_id: string; amount_subunits: number; currency: string; state: string; source: string; payment_id: string;
-  order_id?: string; recoverable_value_subunits: number | null; selected_action: Action | null; priority_score: number
+  order_id?: string; recoverable_value_subunits: number | null; selected_action: Action | null; priority_score: number;
+  natural_recovery_subunits: number; intervention_cost_subunits: number; failure_reason: string
 }
 
 export interface Readiness {
@@ -75,4 +76,40 @@ export interface EvaluationReport {
   variants: Record<string, VariantMetrics>; ablations: Record<string, Record<string, unknown>>;
   failure_analysis: { case_id: string; selected_action: string; oracle_action: string; regret_subunits: number; explanation: string };
   freeze: { openrouter_model: string; prompt_hashes: Record<string, string> }
+}
+
+export interface ReplayCase {
+  case_id: string; rules_action: Action; full_action: Action; status: string;
+  natural_recovery_subunits: number; gross_recovered_subunits: number;
+  incremental_recovered_subunits: number; action_cost_subunits: number;
+  net_value_subunits: number; changed_by_ai: boolean; oracle_action: Action; latency_ms: number
+}
+
+export interface EvaluationReplay {
+  label: string; case_count: number; run_hash: string; download_file: string; cases: ReplayCase[];
+  ai_uplift: {
+    decisions_changed: number; additional_net_value_subunits: number; safety_overrides: number;
+    challenger_catches: number; challenger_scope: string;
+    correct_no_action: number; human_reviews: number; rules_net_value_subunits: number;
+    full_net_value_subunits: number; latency_p95_ms: number; external_model_cost_usd: number;
+    confidence_interval_95: { lower_95: number; upper_95: number; method: string; repetitions: number };
+    attribution_note: string
+  }
+}
+
+export interface IntegrationProofData {
+  mode: string; endpoint: string; webhook_signature_verified: boolean; payment_id: string;
+  order_id?: string; event_id: string; webhook_received_at?: string; idempotency_key?: string;
+  request: Record<string, unknown>; response: Record<string, unknown>;
+  reconciliation: Record<string, unknown>;
+  duplicate_event_suppression: { database_unique_key: string; stored_event_count: number; status: string }
+}
+
+export interface ProductionProofData {
+  architecture: Array<{ name: string; detail: string }>;
+  load_test: null | { label: string; run_timestamp: string; event_count: number; unique_event_count: number;
+    duplicate_event_count: number; duplicate_suppression_rate: number; accepted_once_rate: number;
+    throughput_events_per_second: number; p50_latency_ms: number; p95_latency_ms: number;
+    estimated_compute_cost_usd: number; scope: string; run_hash: string };
+  business_case: Record<string, string>
 }

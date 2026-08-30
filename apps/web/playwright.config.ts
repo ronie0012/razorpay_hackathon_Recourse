@@ -7,10 +7,10 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   reporter: [['list']],
-  use: { baseURL: 'http://127.0.0.1:5173', channel: process.env.CI ? undefined : 'chrome', viewport: { width: 1366, height: 768 }, trace: 'retain-on-failure' },
+  use: { baseURL: 'http://127.0.0.1:5187', channel: process.env.CI ? undefined : 'chrome', viewport: { width: 1366, height: 768 }, trace: 'retain-on-failure' },
   webServer: [
     {
-      command: 'python -m uvicorn recourse.main:app --host 127.0.0.1 --port 8000',
+      command: 'python -m uvicorn recourse.main:app --host 127.0.0.1 --port 8017',
       cwd: '../..',
       env: {
         PYTHONPATH: 'apps/api/src',
@@ -18,9 +18,9 @@ export default defineConfig({
         OPENROUTER_ENABLED: 'false',
         RAZORPAY_ENABLED: 'false',
       },
-      url: 'http://127.0.0.1:8000/health/live',
+      url: 'http://127.0.0.1:8017/health/live',
       reuseExistingServer: true,
     },
-    { command: 'npx vite --host 127.0.0.1', url: 'http://127.0.0.1:5173', reuseExistingServer: true },
+    { command: 'npx vite --host 127.0.0.1 --port 5187', env: { VITE_API_PROXY_TARGET: 'http://127.0.0.1:8017' }, url: 'http://127.0.0.1:5187', reuseExistingServer: true },
   ],
 })

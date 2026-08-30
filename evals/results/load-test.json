@@ -1,0 +1,15 @@
+{
+  "label": "LOCAL SYNTHETIC INGRESS MICRO-BENCHMARK \u2014 NOT A CAPACITY PROMISE",
+  "run_timestamp": "2026-08-30T17:46:46.031067+00:00",
+  "event_count": 10000,
+  "unique_event_count": 1000,
+  "duplicate_event_count": 9000,
+  "duplicate_suppression_rate": 1.0,
+  "accepted_once_rate": 1.0,
+  "throughput_events_per_second": 116095.5,
+  "p50_latency_ms": 0.0027,
+  "p95_latency_ms": 0.0055,
+  "estimated_compute_cost_usd": 0,
+  "scope": "HMAC verification plus in-memory event-id deduplication; excludes network and durable database I/O",
+  "run_hash": "73a2ac6140027a713835cccd5c03a95fc27223e4204713396089f9f7b439cea9"
+}

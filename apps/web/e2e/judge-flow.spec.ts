@@ -49,10 +49,21 @@ test('decision surgery flips a cloned decision and evaluation shows frozen metad
   await page.getByTestId('run-surgery').click()
   await expect(page.getByText('SIMULATION ONLY')).toBeVisible()
   await expect(page.getByText('false', { exact: true })).toBeVisible()
-  await page.getByRole('link', { name: 'Evaluation Lab' }).click()
-  await expect(page.getByText('60 frozen cases.')).toBeVisible()
+  await page.getByRole('link', { name: '60-case Proof' }).click()
+  await expect(page.getByText('What AI changed')).toBeVisible()
   await expect(page.getByText(/final-evaluation.json/)).toBeVisible()
-  await expect(page.getByText(/SYNTHETIC FROZEN BENCHMARK/).first()).toBeVisible()
+  await page.getByTestId('run-batch').click()
+  await expect(page.getByText('60/60', { exact: true })).toBeVisible({ timeout: 10_000 })
+})
+
+test('merchant impact exposes refusal and production proof', async ({ page }) => {
+  await page.goto('/inbox')
+  await expect(page.getByText('is at risk.')).toBeVisible()
+  await page.getByRole('link', { name: 'See a case where Recourse refuses to act' }).click()
+  await expect(page.getByText('HUMAN REVIEW').first()).toBeVisible()
+  await page.getByRole('link', { name: 'Production' }).click()
+  await expect(page.getByText('Ten controls in one path')).toBeVisible()
+  await expect(page.getByText('10,000 signed events')).toBeVisible()
 })
 
 test('all five judge routes render at the demo viewport', async ({ page }) => {
@@ -70,7 +81,7 @@ test('all five judge routes render at the demo viewport', async ({ page }) => {
 
 test('judge routes contain their layout at 1280 by 720', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 })
-  for (const route of ['/', '/inbox', '/evaluation']) {
+  for (const route of ['/', '/inbox', '/evaluation', '/production']) {
     await page.goto(route)
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
     expect(overflow).toBeLessThanOrEqual(0)

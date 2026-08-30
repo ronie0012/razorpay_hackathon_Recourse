@@ -1,0 +1,9 @@
+import { useQuery } from '@tanstack/react-query'
+import { api } from './api'
+
+const text = (value: unknown) => value == null || value === '' ? 'Pending until action is issued' : typeof value === 'boolean' ? (value ? 'VERIFIED' : 'NOT VERIFIED') : String(value)
+
+export default function IntegrationProof({ caseId }: { caseId: string }) {
+  const proof = useQuery({ queryKey: ['integration-proof', caseId], queryFn: () => api.integrationProof(caseId) })
+  return <details className="panel integration-proof"><summary><span><b>Integration Proof</b><small>Sanitized Razorpay ingress, command, response, and reconciliation evidence</small></span><span>Open evidence +</span></summary>{proof.isLoading ? <p>Loading proof…</p> : proof.data && <><div className="proof-mode"><span className="label safe-label">{proof.data.mode}</span><code>{proof.data.endpoint}</code></div><div className="proof-grid"><div><small>Webhook signature</small><b>{text(proof.data.webhook_signature_verified)}</b></div><div><small>Payment ID</small><code>{proof.data.payment_id}</code></div><div><small>Order ID</small><code>{text(proof.data.order_id)}</code></div><div><small>Event delivery</small><code>{proof.data.webhook_received_at ? new Date(proof.data.webhook_received_at).toLocaleString() : 'Pending'}</code></div><div><small>Idempotency key</small><code>{text(proof.data.idempotency_key)}</code></div><div><small>Duplicate suppression</small><b>{proof.data.duplicate_event_suppression.status}</b></div></div><div className="proof-payloads"><article><small>PAYMENT-LINK REQUEST</small><pre>{JSON.stringify(proof.data.request,null,2)}</pre></article><article><small>PAYMENT-LINK RESPONSE</small><pre>{JSON.stringify(proof.data.response,null,2)}</pre></article><article><small>RECONCILIATION RESULT</small><pre>{JSON.stringify(proof.data.reconciliation,null,2)}</pre></article></div></>}</details>
+}
