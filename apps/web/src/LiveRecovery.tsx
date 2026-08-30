@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { api } from './api'
@@ -78,10 +78,20 @@ export default function LiveRecovery() {
     setAnalysis(nextAnalysis)
     await pause(300)
     await api.execute(id)
-    await refreshJourney(id)
-    setStage('action_issued')
+    const refreshed = await refreshJourney(id)
+    if (refreshed.nextDetail.state !== 'RECOVERED') setStage('action_issued')
     queryClient.invalidateQueries({ queryKey: ['cases'] })
   }
+
+  useEffect(() => {
+    if (mode !== 'razorpay' || !caseId || stage !== 'action_issued') return
+    const timer = window.setInterval(() => {
+      void refreshJourney(caseId).catch(() => {
+        setMessage('Waiting for the signed recovery outcome webhook…')
+      })
+    }, 2000)
+    return () => window.clearInterval(timer)
+  }, [caseId, mode, stage])
 
   const guided = useMutation({
     mutationFn: async () => {
