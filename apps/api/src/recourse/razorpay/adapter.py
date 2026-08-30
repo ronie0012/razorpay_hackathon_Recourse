@@ -157,6 +157,7 @@ def _finish_payment_link(
     session.commit()
     return {"executed": True, "reason": "RAZORPAY_TEST_MODE", "command": command.model_dump(mode="json"),
             "provider_resource_id": response["id"], "state": case_row.state,
+            "short_url": response.get("short_url"),
             "mode_label": "RAZORPAY TEST MODE — NO REAL MONEY"}
 
 

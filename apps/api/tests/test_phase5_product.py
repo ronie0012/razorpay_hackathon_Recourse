@@ -33,3 +33,32 @@ def test_evaluation_lab_is_backed_by_final_generated_artifact(client):
     assert set(body["variants"]) == {"rules", "single_model", "full_recourse", "oracle"}
     assert body["variants"]["full_recourse"]["guardrail_evaluation_count"] == 60
     assert body["failure_analysis"]["regret_subunits"] > 0
+
+
+def test_guided_journey_runs_fresh_failure_to_signed_recovery(client):
+    first = client.post("/api/v1/demo/journeys/failure")
+    second = client.post("/api/v1/demo/journeys/failure")
+    assert first.status_code == second.status_code == 200
+    started = first.json()
+    assert started["case_id"] != second.json()["case_id"]
+    assert started["mode_label"] == "SIGNED GUIDED DEMO — NO REAL MONEY"
+
+    case_id = started["case_id"]
+    detail = client.get(f"/api/v1/cases/{case_id}").json()
+    assert detail["state"] == "NORMALIZED"
+    assert detail["case"]["order_id"] == started["order_id"]
+    assert detail["case"]["source"] == "fixture"
+
+    analysis = client.post(f"/api/v1/cases/{case_id}/analyze")
+    assert analysis.status_code == 200
+    assert analysis.json()["decision"]["selected_action"] == "STANDARD_PAYMENT_LINK"
+    assert client.post(f"/api/v1/cases/{case_id}/execute").json()["executed"] is True
+
+    execution = client.get(f"/api/v1/cases/{case_id}/execution").json()
+    assert execution["issued"] is True
+    assert execution["action"] == "STANDARD_PAYMENT_LINK"
+    recovered = client.post(f"/api/v1/demo/journeys/{case_id}/paid").json()
+    assert recovered["state"] == "RECOVERED"
+    duplicate = client.post(f"/api/v1/demo/journeys/{case_id}/paid").json()
+    assert duplicate["created"] is False
+    assert client.get(f"/api/v1/cases/{case_id}").json()["state"] == "RECOVERED"

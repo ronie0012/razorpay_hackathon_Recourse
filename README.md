@@ -33,15 +33,16 @@ python -m uvicorn recourse.main:app --reload
 npm run dev --prefix apps/web
 ```
 
-Open `http://localhost:5173`, choose **Reset judge demo**, and follow the prioritized queue. No provider credentials are required for the complete signed-fixture journey.
+Open `http://localhost:5173` and choose **Start end-to-end demo**. The opening journey creates a fresh signed failure, visibly runs the agent, explains the next recovery action, and reconciles a signed paid outcome. No provider credentials are required for this clearly labelled guided journey. When Razorpay Test Mode and a public webhook are configured, the same page can launch the hosted checkout and wait for provider-delivered evidence.
 
 ## Judge journey
 
-1. **Recovery Inbox** — prioritized failed amount, conservative recoverable value, source and state labels.
-2. **Hero Workbench** — cited evidence, four futures, natural-recovery baseline, uncertainty, costs, challenger, verifier, policy and audit.
-3. **Low-value refusal** — conservative value fails the threshold and ends in `NO_ACTION`.
-4. **Decision Surgery** — mutate a cloned input, observe the decision flip and new hash; external adapters remain hard-disabled.
-5. **Evaluation Lab** — generated metrics for rules, single model, full RECOURSE and evaluator-only oracle across 60 frozen cases.
+1. **Live Recovery Demo** — trigger a fresh failed payment, watch the verified agent trace, inspect the recommended next action, and complete recovery.
+2. **Recovery Inbox** — prioritized failed amount, conservative recoverable value, source and state labels.
+3. **Hero Workbench** — cited evidence, four futures, natural-recovery baseline, uncertainty, costs, challenger, verifier, policy and audit.
+4. **Low-value refusal** — conservative value fails the threshold and ends in `NO_ACTION`.
+5. **Decision Surgery** — mutate a cloned input, observe the decision flip and new hash; external adapters remain hard-disabled.
+6. **Evaluation Lab** — generated metrics for rules, single model, full RECOURSE and evaluator-only oracle across 60 frozen cases.
 
 The reset seeds four signed cases: hero recovery, low value, opt-out, and uncertain evidence (`HUMAN_REVIEW`).
 

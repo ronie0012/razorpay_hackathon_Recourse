@@ -2,7 +2,22 @@ export type Action = 'NO_ACTION' | 'RETRY_LATER' | 'STANDARD_PAYMENT_LINK' | 'ON
 
 export interface CaseSummary {
   case_id: string; amount_subunits: number; currency: string; state: string; source: string; payment_id: string;
-  recoverable_value_subunits: number | null; selected_action: Action | null; priority_score: number
+  order_id?: string; recoverable_value_subunits: number | null; selected_action: Action | null; priority_score: number
+}
+
+export interface Readiness {
+  status: string; database: string; test_mode: boolean; fixture_mode: boolean;
+  openrouter_configured: boolean; razorpay_test_mode_configured: boolean;
+  razorpay_test_mode_missing: string[]
+}
+
+export interface CheckoutOrder {
+  order_id: string; amount_subunits: number; currency: string; key_id: string; mode_label: string
+}
+
+export interface ExecutionStatus {
+  issued: boolean; case_id: string; action?: Action; provider_status?: string;
+  provider_resource_id?: string; short_url?: string; error_code?: string; completed_at?: string
 }
 
 export interface CaseDetail {

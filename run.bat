@@ -53,7 +53,7 @@ if /I "%~1"=="--check" (
 )
 
 echo [3/4] Starting the API at http://127.0.0.1:8000 ...
-start "RECOURSE API" /D "%~dp0" cmd /k "set PYTHONPATH=apps/api/src&& set OPENROUTER_ENABLED=false&& set RAZORPAY_ENABLED=false&& python -m uvicorn recourse.main:app --host 127.0.0.1 --port 8000"
+start "RECOURSE API" /D "%~dp0" cmd /k "set PYTHONPATH=apps/api/src&& set OPENROUTER_ENABLED=false&& python -m uvicorn recourse.main:app --host 127.0.0.1 --port 8000"
 
 echo [4/4] Starting the web app at http://127.0.0.1:5173 ...
 start "RECOURSE Web" /D "%~dp0apps\web" cmd /k "npm run dev -- --host 127.0.0.1"
