@@ -85,6 +85,20 @@ def _process_webhook(session: Session, *, body: bytes, signature: str | None,
     except (ValueError, KeyError, TypeError) as exc:
         raise ValueError("invalid webhook envelope") from exc
 
+    if event == "payment.failed":
+        try:
+            payment_id = str(envelope["payload"]["payment"]["entity"]["id"])
+        except (KeyError, TypeError) as exc:
+            raise ValueError("invalid payment-failure envelope") from exc
+        existing_payment = session.scalar(
+            select(CaseRow).where(CaseRow.source == source, CaseRow.payment_id == payment_id)
+        )
+        if existing_payment:
+            return WebhookResult(
+                case_id=existing_payment.id, created=False,
+                state=existing_payment.state, event=event,
+            )
+
     raw_id = f"{source}:{event_id}"
     existing_raw = session.scalar(select(RawEventRow).where(RawEventRow.provider_event_id == raw_id))
     if existing_raw:
@@ -177,6 +191,6 @@ def process_api_verified_event(session: Session, *, body: bytes, signature: str 
     """Process an event whose provider state was read through authenticated Test API access."""
     return _process_webhook(
         session, body=body, signature=signature, event_id=event_id, settings=settings,
-        source="razorpay_api_verified", secret=settings.command_signing_secret,
+        source="razorpay_test_mode", secret=settings.command_signing_secret,
         label="RAZORPAY API VERIFIED",
     )

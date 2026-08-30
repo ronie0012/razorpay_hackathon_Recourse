@@ -188,7 +188,7 @@ export default function LiveRecovery() {
   const hypothesis = analysis?.diagnosis.hypotheses[0]
   const completedSteps = analysis ? (execution?.issued ? 6 : 5) : detail ? 1 : 0
   const busy = guided.isPending || live.isPending || stage === 'waiting_webhook' || stage === 'agent_running'
-  const apiVerified = detail?.case.source === 'razorpay_api_verified'
+  const apiVerified = detail?.case.source === 'razorpay_api_verified' || audit.some(event => event.event_type === 'PAYMENT_FAILURE_API_VERIFIED')
 
   return <>
     <section className="live-hero">

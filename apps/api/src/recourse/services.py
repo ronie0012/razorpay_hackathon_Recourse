@@ -85,11 +85,6 @@ def _normalize(payload: WebhookPayload, event_id: str, settings: Settings, sourc
         raise ValueError("the payment-failure normalizer accepts only payment.failed events")
     entity = payload.payload["payment"].entity
     notes = entity.notes
-    customer_hash_secret = (
-        settings.razorpay_webhook_secret if source == "razorpay_test_mode"
-        else settings.command_signing_secret if source == "razorpay_api_verified"
-        else settings.fixture_webhook_secret
-    )
     occurred_at = datetime.fromtimestamp(entity.created_at or payload.created_at or int(utcnow().timestamp()), timezone.utc)
     case_id = "case_" + hashlib.sha256(f"{source}|{event_id}".encode()).hexdigest()[:24]
     evidence_ids = [f"ev_{name}_{case_id[-8:]}" for name in EVIDENCE_FIELDS]
@@ -98,7 +93,8 @@ def _normalize(payload: WebhookPayload, event_id: str, settings: Settings, sourc
         payment_id=entity.id, order_id=entity.order_id, merchant_id=str(notes.get("merchant_id", "merchant_demo")),
         customer_ref=_customer_ref(
             str(notes.get("customer_ref", entity.id)),
-            customer_hash_secret,
+            settings.razorpay_webhook_secret or settings.fixture_webhook_secret
+            if source == "razorpay_test_mode" else settings.fixture_webhook_secret,
         ),
         amount_subunits=entity.amount, currency=entity.currency, status=entity.status, method=entity.method,
         failure=Failure(
