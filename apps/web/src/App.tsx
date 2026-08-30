@@ -10,10 +10,10 @@ const money = (subunits: number | null | undefined, currency = 'INR') => subunit
 }).format(subunits / 100)
 const pct = (value: number) => `${Math.round(value * 100)}%`
 const words = (value: string) => value.replaceAll('_', ' ')
-const sourceLabel = (source: string) => source === 'razorpay_test_mode' ? 'RAZORPAY TEST MODE' : source === 'fixture' ? 'SIGNED FIXTURE' : source.toUpperCase()
+const sourceLabel = (source: string) => source === 'razorpay_test_mode' ? 'RAZORPAY TEST MODE' : source === 'razorpay_api_verified' ? 'RAZORPAY API VERIFIED' : source === 'fixture' ? 'SIGNED FIXTURE' : source.toUpperCase()
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return <><header><Link to="/" className="brand" aria-label="RECOURSE home"><span className="brand-mark">R</span>RECOURSE</Link><nav aria-label="Primary"><NavLink to="/" end>Live Demo</NavLink><NavLink to="/inbox">Inbox</NavLink><NavLink to="/evaluation">Evaluation Lab</NavLink></nav><span className="mode-banner">TEST MODE · NO REAL MONEY</span></header><main>{children}</main><footer>RECOURSE · synthetic evidence and Test Mode actions only · policy-v1</footer></>
+  return <><header><Link to="/" className="brand" aria-label="RECOURSE home"><span className="brand-mark">R</span>RECOURSE</Link><nav aria-label="Primary"><NavLink to="/" end>Live Demo</NavLink><NavLink to="/inbox">Inbox</NavLink><NavLink to="/evaluation">Evaluation Lab</NavLink></nav><span className="mode-banner">TEST MODE · NO REAL MONEY</span></header><main>{children}</main><footer>RECOURSE · verified Test Mode evidence and actions only · policy-v1</footer></>
 }
 
 function PageState({ kind, children }: { kind: 'loading' | 'error' | 'empty'; children: React.ReactNode }) {

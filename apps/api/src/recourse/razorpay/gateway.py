@@ -170,3 +170,13 @@ def process_fixture_webhook(session: Session, *, body: bytes, signature: str | N
         session, body=body, signature=signature, event_id=event_id, settings=settings,
         source="fixture", secret=settings.fixture_webhook_secret, label="FIXTURE REPLAY",
     )
+
+
+def process_api_verified_event(session: Session, *, body: bytes, signature: str | None,
+                               event_id: str | None, settings: Settings) -> WebhookResult:
+    """Process an event whose provider state was read through authenticated Test API access."""
+    return _process_webhook(
+        session, body=body, signature=signature, event_id=event_id, settings=settings,
+        source="razorpay_api_verified", secret=settings.command_signing_secret,
+        label="RAZORPAY API VERIFIED",
+    )

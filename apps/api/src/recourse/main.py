@@ -15,14 +15,17 @@ from sqlalchemy import select, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from recourse.config import get_settings
-from recourse.domain.audit import verify_chain
+from recourse.domain.audit import append_audit, verify_chain
 from recourse.domain.models import PaymentFailureCase
 from recourse.domain.state_machine import InvalidTransition
 from recourse.persistence.database import Base, engine, get_db
 from recourse.persistence.tables import AuditRow, CaseRow, EvidenceRow, ExecutionRow
 from recourse.persistence.tables import DecisionRow
 from recourse.product import SurgeryMutations, decision_surgery, load_final_evaluation, reset_and_seed
-from recourse.razorpay import create_checkout_order, execute_action, process_fixture_webhook, process_razorpay_webhook
+from recourse.razorpay import (
+    HttpRazorpayClient, create_checkout_order, execute_action, find_failed_order_payment,
+    process_api_verified_event, process_fixture_webhook, process_razorpay_webhook,
+)
 from recourse.razorpay.adapter import RazorpayAdapterError
 from recourse.services import analyze_case, ingest_signed_event, list_audit
 
@@ -96,6 +99,74 @@ async def checkout_order(amount_subunits: int = 499900, currency: str = "INR"):
         return error(exc.code, str(exc), 503)
     except ValueError as exc:
         return error("INVALID_ORDER", str(exc), 422)
+
+
+@app.post("/api/v1/demo/reconcile-failure/{order_id}")
+async def reconcile_failure(order_id: str, db: Session = Depends(get_db)):
+    """Confirm a real Test Mode failure when webhook delivery is delayed."""
+    if not settings.demo_mode or not settings.test_mode:
+        raise HTTPException(status_code=404)
+    try:
+        payment = await find_failed_order_payment(settings, order_id)
+        if payment is None:
+            return {"found": False, "order_id": order_id}
+        envelope = {
+            "event": "payment.failed",
+            "created_at": payment.get("created_at"),
+            "payload": {"payment": {"entity": payment}},
+        }
+        body = json.dumps(envelope, separators=(",", ":")).encode()
+        signature = hmac.new(settings.command_signing_secret.encode(), body, hashlib.sha256).hexdigest()
+        result = process_api_verified_event(
+            db, body=body, signature=signature,
+            event_id=f"api_verified_failure_{payment['id']}", settings=settings,
+        )
+        if result.case_id and result.created:
+            append_audit(db, case_id=result.case_id, event_type="PAYMENT_FAILURE_API_VERIFIED", payload={
+                "payment_id": payment["id"], "order_id": order_id,
+                "provider_status": payment.get("status"), "source": "authenticated Razorpay Test API",
+            })
+            db.commit()
+        return {
+            "found": True, **result.__dict__,
+            "mode_label": "RAZORPAY API VERIFIED — NO REAL MONEY",
+        }
+    except RazorpayAdapterError as exc:
+        return error(exc.code, str(exc), 503)
+    except ValueError as exc:
+        return error("INVALID_ORDER", str(exc), 422)
+
+
+@app.post("/api/v1/demo/reconcile-outcome/{case_id}")
+async def reconcile_outcome(case_id: str, db: Session = Depends(get_db)):
+    """Confirm a terminal Test payment-link state when its webhook is delayed."""
+    if not settings.demo_mode or not settings.test_mode:
+        raise HTTPException(status_code=404)
+    case = db.get(CaseRow, case_id)
+    execution = db.scalar(select(ExecutionRow).where(ExecutionRow.case_id == case_id))
+    if case is None:
+        raise HTTPException(status_code=404, detail="case not found")
+    if execution is None:
+        return {"found": False, "case_id": case_id}
+    command = json.loads(execution.request_redacted_json)
+    try:
+        link = await HttpRazorpayClient(settings).find_payment_link(command["reference_id"])
+        if link is None or link.get("status") not in {"paid", "expired", "cancelled"}:
+            return {"found": False, "case_id": case_id, "status": link.get("status") if link else None}
+        event = f"payment_link.{link['status']}"
+        envelope = {"event": event, "payload": {"payment_link": {"entity": link}}}
+        body = json.dumps(envelope, separators=(",", ":")).encode()
+        signature = hmac.new(settings.command_signing_secret.encode(), body, hashlib.sha256).hexdigest()
+        result = process_api_verified_event(
+            db, body=body, signature=signature,
+            event_id=f"api_verified_{link['id']}_{link['status']}", settings=settings,
+        )
+        return {
+            "found": True, **result.__dict__,
+            "mode_label": "RAZORPAY API VERIFIED — NO REAL MONEY",
+        }
+    except RazorpayAdapterError as exc:
+        return error(exc.code, str(exc), 503)
 
 
 async def run_live_agent(case_id: str, session_factory: sessionmaker) -> None:

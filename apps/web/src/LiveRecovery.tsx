@@ -86,9 +86,12 @@ export default function LiveRecovery() {
   useEffect(() => {
     if (mode !== 'razorpay' || !caseId || stage !== 'action_issued') return
     const timer = window.setInterval(() => {
-      void refreshJourney(caseId).catch(() => {
-        setMessage('Waiting for the signed recovery outcome webhook…')
-      })
+      void api.reconcileOutcome(caseId)
+        .then(result => {
+          if (result.found) setMessage('Recovery outcome verified directly with Razorpay Test Mode.')
+          return refreshJourney(caseId)
+        })
+        .catch(() => setMessage('Waiting for Razorpay to confirm the recovery outcome…'))
     }, 2000)
     return () => window.clearInterval(timer)
   }, [caseId, mode, stage])
@@ -114,16 +117,26 @@ export default function LiveRecovery() {
     setStage('waiting_webhook')
     for (let attempt = 0; attempt < 60; attempt += 1) {
       const cases = await api.listCases()
-      const found = cases.find(item => item.order_id === orderId && item.source === 'razorpay_test_mode')
+      const found = cases.find(item => item.order_id === orderId && ['razorpay_test_mode', 'razorpay_api_verified'].includes(item.source))
       if (found) {
         setCaseId(found.case_id)
         setStage('failure_received')
         await finishAgentJourney(found.case_id)
         return
       }
+      if (attempt >= 4) {
+        const reconciled = await api.reconcileFailure(orderId)
+        if (reconciled.found && reconciled.case_id) {
+          setMessage('Webhook delayed; failure verified through the authenticated Razorpay Test API.')
+          setCaseId(reconciled.case_id)
+          setStage('failure_received')
+          await finishAgentJourney(reconciled.case_id)
+          return
+        }
+      }
       await pause(1500)
     }
-    throw new Error('The provider webhook was not received within 90 seconds. Check the callback URL and webhook secret.')
+    throw new Error('Razorpay did not report a failed payment for this order. Please trigger Test Mode failure and try again.')
   }
 
   const live = useMutation({
@@ -141,7 +154,7 @@ export default function LiveRecovery() {
         currency: order.currency,
         name: 'RECOURSE Test Store',
         description: 'Intentional failed-payment recovery demo',
-        modal: { ondismiss: () => setMessage('Checkout closed. Start again when you are ready to trigger a Test Mode failure.') },
+        modal: { ondismiss: () => setMessage('Checkout closed; continuing to verify the payment result with Razorpay.') },
         theme: { color: '#123f2e' },
       })
       checkout.on('payment.failed', () => {
@@ -175,11 +188,12 @@ export default function LiveRecovery() {
   const hypothesis = analysis?.diagnosis.hypotheses[0]
   const completedSteps = analysis ? (execution?.issued ? 6 : 5) : detail ? 1 : 0
   const busy = guided.isPending || live.isPending || stage === 'waiting_webhook' || stage === 'agent_running'
+  const apiVerified = detail?.case.source === 'razorpay_api_verified'
 
   return <>
     <section className="live-hero">
       <div><p className="eyebrow">Live recovery journey · from failure to next action</p><h1>Watch the agent<br/><em>earn the recovery.</em></h1><p>Trigger a failed payment, follow every verified decision, and see exactly what RECOURSE recommends next.</p></div>
-      <div className="readiness-card"><span className={readiness.data?.razorpay_test_mode_configured ? 'ready-dot online' : 'ready-dot'}/><div><b>{readiness.data?.razorpay_test_mode_configured ? 'Razorpay Test Mode ready' : 'Guided demo ready'}</b><small>{readiness.data?.razorpay_test_mode_configured ? 'Provider checkout + signed webhook' : 'Signed fixture · identical decision path'}</small></div></div>
+      <div className="readiness-card"><span className={readiness.data?.razorpay_test_mode_configured ? 'ready-dot online' : 'ready-dot'}/><div><b>{readiness.data?.razorpay_test_mode_configured ? 'Razorpay Test Mode ready' : 'Guided demo ready'}</b><small>{readiness.data?.razorpay_test_mode_configured ? 'Provider checkout + webhook/API verification' : 'Signed fixture · identical decision path'}</small></div></div>
     </section>
 
     {stage === 'idle' && <div className="journey-launch">
@@ -189,14 +203,14 @@ export default function LiveRecovery() {
 
     {stage !== 'idle' && <div className="journey-grid">
       <section className="panel journey-stage">
-        <div className="panel-title"><div><p className="eyebrow">Payment attempt</p><h2>{stage === 'recovered' ? 'Recovery confirmed' : stage === 'error' ? 'Journey needs attention' : 'Agent is handling the failure'}</h2></div><span className={`label ${mode === 'guided' ? 'warning' : 'safe-label'}`}>{mode === 'guided' ? 'SIGNED GUIDED DEMO' : 'RAZORPAY TEST MODE'}</span></div>
-        <div className={`payment-pulse ${stage === 'recovered' ? 'success' : ''}`}><span>{stage === 'recovered' ? '✓' : stage === 'checkout_open' ? '↗' : busy ? '···' : '!'}</span><div><small>Current state</small><b>{words(stage)}</b><p>{stage === 'checkout_open' ? 'Complete the hosted checkout with a Test Mode failure.' : stage === 'waiting_webhook' ? 'Browser failure observed; waiting for trusted provider evidence.' : stage === 'agent_running' ? 'Diagnosis, counterfactual simulation, and challenge are running.' : stage === 'action_issued' ? 'The safest valuable next action is ready.' : stage === 'recovered' ? 'The signed outcome webhook moved this case to RECOVERED.' : 'Preparing the payment journey.'}</p></div></div>
+        <div className="panel-title"><div><p className="eyebrow">Payment attempt</p><h2>{stage === 'recovered' ? 'Recovery confirmed' : stage === 'error' ? 'Journey needs attention' : 'Agent is handling the failure'}</h2></div><span className={`label ${mode === 'guided' ? 'warning' : 'safe-label'}`}>{mode === 'guided' ? 'SIGNED GUIDED DEMO' : apiVerified ? 'RAZORPAY API VERIFIED' : 'RAZORPAY TEST MODE'}</span></div>
+        <div className={`payment-pulse ${stage === 'recovered' ? 'success' : ''}`}><span>{stage === 'recovered' ? '✓' : stage === 'checkout_open' ? '↗' : busy ? '···' : '!'}</span><div><small>Current state</small><b>{words(stage)}</b><p>{stage === 'checkout_open' ? 'Complete the hosted checkout with a Test Mode failure.' : stage === 'waiting_webhook' ? 'Browser failure observed; waiting for trusted provider evidence.' : stage === 'agent_running' ? 'Diagnosis, counterfactual simulation, and challenge are running.' : stage === 'action_issued' ? 'The safest valuable next action is ready.' : stage === 'recovered' ? apiVerified ? 'Razorpay API verification moved this case to RECOVERED.' : 'The signed outcome webhook moved this case to RECOVERED.' : 'Preparing the payment journey.'}</p></div></div>
         {message && <p className="journey-message" role="alert">{message}</p>}
         {caseId && <div className="case-reference"><span>Case</span><code>{caseId}</code><Link to={`/cases/${caseId}`}>Open full workbench →</Link></div>}
         <button className="button-secondary full" onClick={reset}>Start another journey</button>
       </section>
 
-      <section className="panel agent-timeline"><p className="eyebrow">Verifiable agent trace</p><h2>What the system is doing</h2><ol>{timeline.map(([title, description], index) => <li className={index < completedSteps ? 'complete' : index === completedSteps && busy ? 'active' : ''} key={title}><span>{index < completedSteps ? '✓' : String(index + 1).padStart(2, '0')}</span><div><b>{title}</b><p>{description}</p></div></li>)}</ol></section>
+      <section className="panel agent-timeline"><p className="eyebrow">Verifiable agent trace</p><h2>What the system is doing</h2><ol>{timeline.map(([title, description], index) => <li className={index < completedSteps ? 'complete' : index === completedSteps && busy ? 'active' : ''} key={title}><span>{index < completedSteps ? '✓' : String(index + 1).padStart(2, '0')}</span><div><b>{title}</b><p>{index === 0 && apiVerified ? 'Failure confirmed through authenticated Razorpay Test API reconciliation.' : description}</p></div></li>)}</ol></section>
 
       <section className="panel recommendation-panel">
         <p className="eyebrow">What should we do next?</p>

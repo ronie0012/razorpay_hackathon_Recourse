@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import re
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -111,6 +112,17 @@ class HttpRazorpayClient:
             return next((link for link in payment_links if link.get("reference_id") == reference_id), None)
         except (ValueError, AttributeError, TypeError) as exc:
             raise RazorpayAdapterError("RAZORPAY_RESPONSE_SHAPE", "invalid reconciliation response") from exc
+
+    async def failed_payment_for_order(self, order_id: str) -> dict[str, Any] | None:
+        if not re.fullmatch(r"order_[A-Za-z0-9]+", order_id):
+            raise ValueError("invalid Razorpay order id")
+        response = await self._request("GET", f"/orders/{order_id}/payments")
+        try:
+            payments = response.json().get("items", [])
+            failed = [payment for payment in payments if payment.get("status") == "failed"]
+            return max(failed, key=lambda payment: int(payment.get("created_at", 0))) if failed else None
+        except (ValueError, AttributeError, TypeError) as exc:
+            raise RazorpayAdapterError("RAZORPAY_RESPONSE_SHAPE", "invalid order-payments response") from exc
 
 
 def _provider_payload(case: PaymentFailureCase, command) -> dict[str, Any]:
@@ -263,3 +275,7 @@ async def create_checkout_order(settings: Settings, *, amount_subunits: int, cur
         "currency": order.get("currency", currency), "key_id": settings.razorpay_key_id,
         "mode_label": "RAZORPAY TEST MODE — NO REAL MONEY",
     }
+
+
+async def find_failed_order_payment(settings: Settings, order_id: str) -> dict[str, Any] | None:
+    return await HttpRazorpayClient(settings).failed_payment_for_order(order_id)

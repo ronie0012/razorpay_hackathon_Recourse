@@ -272,3 +272,34 @@ def test_http_client_parses_razorpay_payment_links_collection():
     result = asyncio.run(fetch())
     assert result["id"] == "plink_test_existing"
     assert result["status"] == "paid"
+
+
+def test_http_client_finds_latest_failed_payment_for_order():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/v1/orders/order_Test123/payments"
+        return httpx.Response(200, json={"items": [
+            {"id": "pay_old", "status": "failed", "created_at": 10},
+            {"id": "pay_success", "status": "captured", "created_at": 30},
+            {"id": "pay_latest", "status": "failed", "created_at": 20},
+        ]})
+
+    settings = Settings(
+        razorpay_enabled=True, test_mode=True,
+        razorpay_key_id="rzp_test_demo", razorpay_key_secret="secret",
+    )
+
+    async def fetch():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http_client:
+            return await HttpRazorpayClient(settings, http_client).failed_payment_for_order("order_Test123")
+
+    result = asyncio.run(fetch())
+    assert result["id"] == "pay_latest"
+
+
+def test_http_client_rejects_untrusted_order_path():
+    settings = Settings(
+        razorpay_enabled=True, test_mode=True,
+        razorpay_key_id="rzp_test_demo", razorpay_key_secret="secret",
+    )
+    with pytest.raises(ValueError, match="invalid Razorpay order id"):
+        asyncio.run(HttpRazorpayClient(settings).failed_payment_for_order("../payments"))

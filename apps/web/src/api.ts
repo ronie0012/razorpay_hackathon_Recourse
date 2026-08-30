@@ -15,6 +15,8 @@ export const api = {
   execute: (id: string): Promise<{ executed: boolean; reason: string; error?: string; state?: string; mode_label?: string }> => fetch(`/api/v1/cases/${id}/execute`, { method: 'POST' }).then(json<{ executed: boolean; reason: string; error?: string; state?: string; mode_label?: string }>),
   execution: (id: string): Promise<ExecutionStatus> => fetch(`/api/v1/cases/${id}/execution`).then(json<ExecutionStatus>),
   createCheckoutOrder: (amountSubunits: number): Promise<CheckoutOrder> => fetch(`/api/v1/demo/checkout-order?amount_subunits=${amountSubunits}&currency=INR`, { method: 'POST' }).then(json<CheckoutOrder>),
+  reconcileFailure: (orderId: string): Promise<{ found: boolean; case_id?: string; mode_label?: string }> => fetch(`/api/v1/demo/reconcile-failure/${encodeURIComponent(orderId)}`, { method: 'POST' }).then(json<{ found: boolean; case_id?: string; mode_label?: string }>),
+  reconcileOutcome: (id: string): Promise<{ found: boolean; state?: string; mode_label?: string }> => fetch(`/api/v1/demo/reconcile-outcome/${id}`, { method: 'POST' }).then(json<{ found: boolean; state?: string; mode_label?: string }>),
   startGuidedFailure: (): Promise<{ case_id: string; order_id: string; mode_label: string }> => fetch('/api/v1/demo/journeys/failure', { method: 'POST' }).then(json<{ case_id: string; order_id: string; mode_label: string }>),
   completeGuidedRecovery: (id: string): Promise<{ case_id: string; state: string; mode_label: string }> => fetch(`/api/v1/demo/journeys/${id}/paid`, { method: 'POST' }).then(json<{ case_id: string; state: string; mode_label: string }>),
   audit: (id: string): Promise<AuditEvent[]> => fetch(`/api/v1/cases/${id}/audit`).then(json<AuditEvent[]>),
