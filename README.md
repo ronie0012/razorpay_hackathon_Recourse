@@ -1,87 +1,179 @@
+<div align="center">
+
 # RECOURSE
 
-**Adversarial counterfactual revenue recovery for Razorpay Test Mode.**
+### Evidence-first revenue recovery for failed payments
 
-Payment recovery systems usually ask, “Which intervention converts?” RECOURSE asks the harder question: **“What value did the intervention add beyond recovery that would have happened anyway—and is the action defensible?”**
+RECOURSE turns a signed `payment.failed` event into a verified, policy-safe recovery decision—then executes at most one signed action in Razorpay Test Mode.
 
-A signed `payment.failed` event becomes a canonical case and evidence pack. A bounded model diagnoses the failure, four calibrated futures include `NO_ACTION`, a challenger searches for objections, deterministic code verifies every cited fact, and policy either refuses or emits one signed Test Mode command. Every transition is hash-audited.
+[![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115%2B-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=111)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Razorpay](https://img.shields.io/badge/Razorpay-Test_Mode-0C2451)](https://razorpay.com/)
 
-> Razorpay is used only in Test Mode. Judge cases and evaluation data are synthetic. Reported results are not production uplift claims.
+[Live Demo](https://recourse-razorpay-recovery.vercel.app) · [Architecture](docs/architecture.md) · [Evaluation](evals/results/final-evaluation.md) · [Demo Script](docs/demo_script.md)
 
-## 60-second quick start
+</div>
 
-Prerequisites: Python 3.11+ and Node.js 20+.
+![RECOURSE recovery workbench](apps/web/test-results/screenshots/workbench-1366x768.png)
+
+> [!IMPORTANT]
+> RECOURSE uses Razorpay **Test Mode only**. Judge cases and evaluation data are synthetic, and the reported results are not claims of production uplift.
+
+## Why RECOURSE?
+
+Most recovery systems ask, “Which intervention is most likely to convert?” RECOURSE asks a stricter question:
+
+> **What incremental value did the intervention add beyond recovery that would have happened anyway—and can every action be defended?**
+
+A bounded agent diagnoses the failure, estimates four counterfactual futures (including `NO_ACTION`), and challenges its own recommendation. Deterministic code then verifies every cited fact and applies consent, value, budget, and Test Mode guardrails before a signed command can be emitted. Every transition is recorded in a hash-chained audit trail.
+
+## Highlights
+
+| Capability | What it provides |
+|---|---|
+| Evidence-grounded diagnosis | Structured diagnoses with citations resolved against the decision-time evidence pack |
+| Counterfactual value estimation | Four calibrated futures compared with the natural-recovery baseline |
+| Adversarial review | A challenger searches for unsupported assumptions and reasons to abstain |
+| Deterministic safety layer | Consent, contact limits, budgets, value thresholds, and Test Mode are enforced in code |
+| Safe execution | Signed commands, idempotency, stable references, and at most one payment link per case |
+| Verifiable auditability | Append-only, hash-chained events make every decision reproducible and inspectable |
+| Honest evaluation | Frozen synthetic benchmark, baselines, calibration, regret, ablations, and losing-case analysis |
+
+## How it works
+
+```mermaid
+flowchart LR
+  A[Signed webhook] --> B[Canonical evidence pack]
+  B --> C[Diagnosis + citations]
+  C --> D[Four counterfactual futures]
+  D --> E[Challenge + fact verification]
+  E --> F{Policy guardrails}
+  F -->|Approve| G[Signed Test Mode command]
+  F -->|Refuse| H[NO_ACTION / REVIEW]
+  G --> I[Idempotent outcome reducer]
+  H --> J[Hash-chained audit]
+  I --> J
+```
+
+The model can analyze evidence, but it cannot select or execute an action directly. The Razorpay adapter accepts only `rzp_test_` keys, disables notifications and reminders, preserves the original amount and currency, and reconciles ambiguous provider responses instead of blindly retrying.
+
+For trust boundaries and persistence details, see the [architecture document](docs/architecture.md).
+
+## Quick start
+
+### Prerequisites
+
+- Python 3.11 or newer
+- Node.js 20 or newer
+- Git
+
+### 1. Install
 
 ```powershell
+git clone https://github.com/ronie0012/razorpay_hackathon_Recourse.git
+cd razorpay_hackathon_Recourse
+
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 python -m pip install -e ".[dev]"
 npm ci --prefix apps/web
+
 Copy-Item .env.example .env
 $env:PYTHONPATH="apps/api/src"
 python -m alembic -c apps/api/alembic.ini upgrade head
 ```
 
-Start the API and web app in separate terminals:
+### 2. Run
+
+Start the API:
 
 ```powershell
 $env:PYTHONPATH="apps/api/src"
 python -m uvicorn recourse.main:app --reload
 ```
 
+In a second terminal, start the web app:
+
 ```powershell
 npm run dev --prefix apps/web
 ```
 
-Open `http://localhost:5173` and choose **Start end-to-end demo**. The opening journey creates a fresh signed failure, visibly runs the agent, explains the next recovery action, and reconciles a signed paid outcome. No provider credentials are required for this clearly labelled guided journey. When Razorpay Test Mode and a public webhook are configured, the same page can launch the hosted checkout and wait for provider-delivered evidence.
+Open [http://localhost:5173](http://localhost:5173) and select **Start end-to-end demo**.
 
-## Judge journey
+The guided journey requires no provider credentials: it creates a fresh signed failure, runs the decision pipeline, explains the proposed recovery action, and reconciles a signed paid outcome. With Razorpay Test Mode and a public webhook configured, the same screen can launch hosted Checkout and wait for provider-delivered evidence.
 
-1. **Live Recovery Demo** — trigger a fresh failed payment, watch the verified agent trace, inspect the recommended next action, and complete recovery.
-2. **Recovery Inbox** — prioritized failed amount, conservative recoverable value, source and state labels.
-3. **Hero Workbench** — cited evidence, four futures, natural-recovery baseline, uncertainty, costs, challenger, verifier, policy and audit.
-4. **Low-value refusal** — conservative value fails the threshold and ends in `NO_ACTION`.
-5. **Decision Surgery** — mutate a cloned input, observe the decision flip and new hash; external adapters remain hard-disabled.
-6. **Evaluation Lab** — generated metrics for rules, single model, full RECOURSE and evaluator-only oracle across 60 frozen cases.
+## Product tour
 
-The reset seeds four signed cases: hero recovery, low value, opt-out, and uncertain evidence (`HUMAN_REVIEW`).
+1. **Live Recovery Demo** — trigger a failed payment and follow the verified agent trace through recovery.
+2. **Recovery Inbox** — prioritize cases by failed amount, conservative recoverable value, source, and state.
+3. **Hero Workbench** — inspect evidence, counterfactuals, uncertainty, costs, challenge, verification, policy, and audit history.
+4. **Low-value refusal** — see the system choose `NO_ACTION` when conservative value misses the threshold.
+5. **Decision Surgery** — clone and mutate an input, then observe the decision and audit hash change safely.
+6. **Evaluation Lab** — compare rules, a single model, full RECOURSE, and an evaluator-only oracle across 60 frozen cases.
 
-## Architecture
+Resetting the demo seeds four representative cases: hero recovery, low value, customer opt-out, and uncertain evidence requiring `HUMAN_REVIEW`.
 
-```mermaid
-flowchart LR
-  A[Signed webhook] --> B[Evidence pack]
-  B --> C[Diagnosis + schema + citations]
-  C --> D[Four counterfactual futures]
-  D --> E[Challenge + deterministic verifier]
-  E --> F[Policy guardrails]
-  F -->|approve| G[Signed Test Mode command]
-  F -->|refuse| H[NO_ACTION / REVIEW]
-  G --> I[Idempotent outcome reducer]
-  H --> J[Hash-chained audit]
-  I --> J
-```
+## Evaluation snapshot
 
-The OpenRouter boundary never selects or executes an action. The Razorpay adapter accepts only `rzp_test_` keys, disables notifications/reminders, preserves original amount/currency, and creates at most one link per case. Duplicate and reversed outcomes cannot regress `RECOVERED`.
+Results from the frozen synthetic benchmark:
 
-Read the full [architecture and trust boundaries](docs/architecture.md).
-
-## Generated final results
-
-Full RECOURSE on the frozen synthetic benchmark currently reports:
-
-| Metric | Generated result |
+| Metric | Full RECOURSE |
 |---|---:|
-| Cases | 60 |
+| Evaluated cases | 60 |
 | Realized incremental net value | ₹63,472.72 |
 | Guardrail violations | 0 / 60 |
 | Review rate | 8.33% |
 | Macro Brier score | 0.1926 |
 | Mean regret | ₹1,195.25 |
 
-The evaluator writes aggregate JSON/Markdown, per-case JSONL/CSV, freeze hashes, reliability bins, confusion counts, regret, latency, ablations, denominators, and an honest losing-case analysis under `evals/results/final-*`.
+The evaluator writes aggregate JSON and Markdown reports, per-case JSONL and CSV, freeze hashes, reliability bins, confusion counts, regret, latency, ablations, denominators, and an explicit losing-case analysis under [`evals/results`](evals/results).
+
+Read the complete [final evaluation](evals/results/final-evaluation.md) and [model card](docs/model_card.md).
+
+## Technology
+
+| Layer | Technologies |
+|---|---|
+| Web | React 19, TypeScript, Vite, TanStack Query, React Router |
+| API | FastAPI, SQLAlchemy, Alembic, Pydantic |
+| Modeling | scikit-learn, NumPy, joblib |
+| Agent boundary | OpenRouter with schema-constrained outputs and deterministic fallbacks |
+| Payments | Razorpay Test Mode with HMAC verification and idempotent reconciliation |
+| Persistence | SQLite locally; PostgreSQL in the hosted deployment |
+| Quality | pytest, Hypothesis, Vitest, Playwright, smoke and hardening scripts |
+
+## Repository structure
+
+```text
+.
+├── apps/
+│   ├── api/                 # FastAPI service, domain logic, agents, and tests
+│   └── web/                 # React application and Playwright journeys
+├── data/                    # Signed fixtures, frozen datasets, and data card
+├── docs/                    # Architecture, security, validation, and demo guides
+├── evals/                   # Baselines, metrics, and generated evaluation artifacts
+├── models/artifacts/        # Hash-verified trained model artifacts
+├── prompts/                 # Versioned prompts and JSON schemas
+└── scripts/                 # Data, training, evaluation, smoke, and hardening tools
+```
+
+## Configuration
+
+Copy `.env.example` to `.env`; the local file is ignored by Git.
+
+| Integration | Configuration |
+|---|---|
+| OpenRouter | Set `OPENROUTER_API_KEY`. The pinned model slug is `liquid/lfm-2.5-2.6b:free`. |
+| Razorpay | Set `RAZORPAY_ENABLED=true`, an `rzp_test_` key ID, key secret, and a webhook secret different from `FIXTURE_WEBHOOK_SECRET`. |
+
+Never expose secrets through `VITE_*` variables. Only a Razorpay Test Mode key ID may reach Checkout. Provider timeouts, rate limits, missing credits, malformed JSON, and unsupported evidence fall back safely.
 
 ## Verification
+
+Run the complete verification suite from the repository root:
 
 ```powershell
 $env:PYTHONPATH="apps/api/src"
@@ -93,54 +185,47 @@ npm run test:e2e --prefix apps/web
 npm run build --prefix apps/web
 ```
 
-The browser suite covers hero recovery exactly once, low-value refusal, opt-out guardrail, uncertain review, Decision Surgery, Evaluation Lab metadata, responsive layout, and screenshots of all four routes.
+The browser suite covers hero recovery exactly once, low-value refusal, opt-out enforcement, uncertain review, Decision Surgery, Evaluation Lab metadata, responsive layouts, and screenshots of all primary routes.
 
-## Provider configuration
+To regenerate the statistical layer:
 
-Copy `.env.example` to `.env`. Keep real values only in `.env`, which is ignored.
+```powershell
+python scripts/generate_data.py
+python scripts/train.py
+python scripts/evaluate.py
+```
 
-- OpenRouter: set `OPENROUTER_API_KEY`; the live-validated pinned slug is `liquid/lfm-2.5-2.6b:free`.
-- Razorpay: set `RAZORPAY_ENABLED=true`, an `rzp_test_` key ID, key secret, and a webhook secret distinct from `FIXTURE_WEBHOOK_SECRET`.
-- Never expose secrets through `VITE_*` variables. Only a Test Mode key ID may reach Checkout.
+Training code cannot import frozen potential outcomes, and every model artifact is verified by hash when loaded.
 
-Provider timeout, rate limit, missing credits, bad JSON and unsupported evidence fall back safely. Ambiguous Payment Link creation enters reconciliation by stable reference rather than blindly creating another link.
+## Deployment
 
-## Reproducibility and documentation
+- **Frontend:** [recourse-razorpay-recovery.vercel.app](https://recourse-razorpay-recovery.vercel.app)
+- **API readiness:** [recourse-razorpay-recovery-api.onrender.com/health/ready](https://recourse-razorpay-recovery-api.onrender.com/health/ready)
 
-- [Architecture](docs/architecture.md)
+`render.yaml` provisions the FastAPI service and PostgreSQL on Render. `apps/web/vercel.json` builds the Vite frontend on Vercel and proxies `/api` and `/health` to the backend. Provider credentials remain dashboard-managed and are never committed to Git.
+
+The public deployment is intentionally deterministic: visitors cannot consume OpenRouter credits or create Razorpay links. Render free PostgreSQL databases expire after 30 days, so the datastore must be renewed or upgraded for a longer-lived deployment.
+
+## Documentation
+
+- [Architecture and trust boundaries](docs/architecture.md)
+- [Security and hardening](docs/security.md)
 - [Model card](docs/model_card.md)
 - [Data card](data/data_card.md)
 - [Final evaluation](evals/results/final-evaluation.md)
-- [Security and hardening](docs/security.md)
 - [Live provider validation](docs/live_validation.md)
 - [Five-minute demo script](docs/demo_script.md)
 - [Submission checklist](docs/submission_checklist.md)
 - [Buildathon blueprint](RECOURSE_BUILDATHON_BLUEPRINT.md)
 
-Regenerate the statistical layer with `python scripts/generate_data.py`, `python scripts/train.py`, and `python scripts/evaluate.py`. Training code cannot import frozen potential outcomes, and every model artifact is verified by hash on load.
-
-## Public demo deployment
-
-The repository contains a safe split deployment configuration:
-
-- Live frontend: <https://recourse-razorpay-recovery.vercel.app>
-- Backend readiness: <https://recourse-razorpay-recovery-api.onrender.com/health/ready>
-
-- `render.yaml` runs the FastAPI backend on Render with generated signing secrets and free PostgreSQL storage. Provider credentials remain dashboard-managed and are never stored in Git.
-- `apps/web/vercel.json` builds the Vite frontend on Vercel and proxies `/api` and `/health` to the Render service.
-
-When Razorpay Test Mode is enabled, a verified `payment.failed` webhook is acknowledged immediately and schedules the idempotent diagnosis → challenge → policy → execution pipeline. The Render Blueprint attaches a free PostgreSQL database so live cases survive web-service restarts. Render free PostgreSQL databases expire after 30 days, so renew or upgrade the datastore before a longer-running deployment.
-
-On Vercel, select `apps/web` as the project root. The public deployment is intentionally deterministic: visitors cannot consume OpenRouter credits or create Razorpay links. Use **Reset judge demo** whenever the temporary Render database is recreated after a deployment or restart.
-
 ## Limitations
 
 - Synthetic data cannot establish real-world uplift, fairness, or calibration.
-- This MVP is single-merchant, local-first, INR-oriented, and Test Mode only.
-- It does not automatically charge stored methods, send messages, offer discounts, or support live keys.
-- Provider-delivered webhooks require a reachable callback configured in the Razorpay dashboard; signed offline replay remains the reliable demo fallback.
-- Policy thresholds and model calibration require production revalidation before real use.
+- The MVP is single-merchant, local-first, INR-oriented, and Test Mode only.
+- It does not automatically charge stored methods, message customers, offer discounts, or accept live keys.
+- Provider webhooks require a reachable callback configured in Razorpay; signed offline replay remains the reliable demo fallback.
+- Policy thresholds and model calibration require production revalidation before real-world use.
 
 ## License
 
-[MIT](LICENSE)
+Released under the [MIT License](LICENSE).
